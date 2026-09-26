@@ -92,84 +92,72 @@ export function startApiServer(
 }
 
 function dispatch(store: SessionStore, route: Route, body: Record<string, unknown>) {
-  const tick = () => store.watchdogTick(store.now())
-  const envelope = <T extends Record<string, unknown>>(extra: T) => ({ ...extra, server_now: new Date(store.now()).toISOString() })
-
   switch (route.name) {
     case 'health':
       return { ok: true }
-    case 'create': {
-      const session = store.create(createInput(body))
-      tick()
-      return envelope({ session: store.getSnapshot(session.id) })
-    }
-    case 'get': {
-      tick()
-      const session = store.getSnapshot(route.params.id)
-      if (!session) throw new DomainError('session not found', 404)
-      return envelope({ session })
-    }
-    case 'home': {
-      const session = store.markHome(route.params.id)
-      tick()
-      return envelope({ session: store.getSnapshot(session.id) })
-    }
-    case 'cancel': {
-      const session = store.cancel(route.params.id)
-      tick()
-      return envelope({ session: store.getSnapshot(session.id) })
-    }
-    case 'ping': {
-      const session = store.recordPing(route.params.id, str(body, 'label'))
-      tick()
-      return envelope({ session: store.getSnapshot(session.id) })
-    }
-    case 'propose': {
-      const session = store.proposeGuardian(route.params.id, str(body, 'guardian_name'))
-      tick()
-      return envelope({ session: store.getSnapshot(session.id) })
-    }
-    case 'confirm': {
-      const session = store.confirmGuardian(route.params.id)
-      tick()
-      return envelope({ session: store.getSnapshot(session.id) })
-    }
-    case 'cancel-change': {
-      const session = store.cancelGuardianChange(route.params.id)
-      tick()
-      return envelope({ session: store.getSnapshot(session.id) })
-    }
-    case 'dismiss': {
-      const session = store.dismissNudges(route.params.id)
-      tick()
-      return envelope({ session: store.getSnapshot(session.id) })
-    }
-    case 'note': {
-      const session = store.noteNudge(route.params.id, nudgeKind(body.kind))
-      tick()
-      return envelope({ session: store.getSnapshot(session.id) })
-    }
-    case 'guardian': {
-      tick()
-      return envelope({ view: store.guardianView(route.params.token) })
-    }
-    case 'accept': {
+    case 'create':
+      return sessionBody(store, store.create(createInput(body)).id)
+    case 'get':
+      return sessionBody(store, route.params.id)
+    case 'home':
+      store.markHome(route.params.id)
+      return sessionBody(store, route.params.id)
+    case 'cancel':
+      store.cancel(route.params.id)
+      return sessionBody(store, route.params.id)
+    case 'ping':
+      store.recordPing(route.params.id, str(body, 'label'))
+      return sessionBody(store, route.params.id)
+    case 'propose':
+      store.proposeGuardian(route.params.id, str(body, 'guardian_name'))
+      return sessionBody(store, route.params.id)
+    case 'confirm':
+      store.confirmGuardian(route.params.id)
+      return sessionBody(store, route.params.id)
+    case 'cancel-change':
+      store.cancelGuardianChange(route.params.id)
+      return sessionBody(store, route.params.id)
+    case 'dismiss':
+      store.dismissNudges(route.params.id)
+      return sessionBody(store, route.params.id)
+    case 'note':
+      store.noteNudge(route.params.id, nudgeKind(body.kind))
+      return sessionBody(store, route.params.id)
+    case 'guardian':
+      return viewBody(store, route.params.token)
+    case 'accept':
       store.acceptByToken(route.params.token)
-      tick()
-      return envelope({ view: store.guardianView(route.params.token) })
-    }
+      return viewBody(store, route.params.token)
     case 'advance': {
-      const minutes = num(body, 'minutes')
-      store.advance(minutes)
-      return { server_now: new Date(store.now()).toISOString() }
+      store.advance(num(body, 'minutes'))
+      const id = optionalStr(body, 'session_id')
+      if (!id) return { server_now: stamp(store) }
+      return sessionBody(store, id)
     }
     case 'jump': {
-      store.jumpPastGrace(str(body, 'session_id'))
-      return { server_now: new Date(store.now()).toISOString() }
+      const id = str(body, 'session_id')
+      store.jumpPastGrace(id)
+      return sessionBody(store, id)
     }
     default:
-      throw new DomainError('not found', 404)
+      throw new DomainError('not_found', 404)
   }
+}
+
+function sessionBody(store: SessionStore, id: string) {
+  store.watchdogTick(store.now())
+  const session = store.getSnapshot(id)
+  if (!session) throw new DomainError('session_not_found', 404)
+  return { session, server_now: stamp(store) }
+}
+
+function viewBody(store: SessionStore, token: string) {
+  store.watchdogTick(store.now())
+  return { view: store.guardianView(token), server_now: stamp(store) }
+}
+
+function stamp(store: SessionStore): string {
+  return new Date(store.now()).toISOString()
 }
 
 function createInput(body: Record<string, unknown>): CreateSessionInput {
@@ -208,33 +196,39 @@ async function readJson(req: IncomingMessage): Promise<Record<string, unknown>> 
   if (!text) return {}
   const parsed = JSON.parse(text) as unknown
   if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
-    throw new DomainError('expected object')
+    throw new DomainError('expected_object')
   }
   return parsed as Record<string, unknown>
 }
 
 function str(body: Record<string, unknown>, key: string): string {
   const value = body[key]
-  if (typeof value !== 'string' || !value.trim()) throw new DomainError(`${key} is required`)
+  if (typeof value !== 'string' || !value.trim()) throw new DomainError(`${key}_required`)
   return value.trim()
+}
+
+function optionalStr(body: Record<string, unknown>, key: string): string | null {
+  const value = body[key]
+  if (value == null || value === '') return null
+  return str(body, key)
 }
 
 function num(body: Record<string, unknown>, key: string): number {
   const value = body[key]
-  if (typeof value !== 'number' || !Number.isFinite(value)) throw new DomainError(`${key} is required`)
+  if (typeof value !== 'number' || !Number.isFinite(value)) throw new DomainError(`${key}_required`)
   return value
 }
 
 function bool(body: Record<string, unknown>, key: string, fallback: boolean): boolean {
   const value = body[key]
   if (value == null) return fallback
-  if (typeof value !== 'boolean') throw new DomainError(`${key} must be boolean`)
+  if (typeof value !== 'boolean') throw new DomainError(`${key}_boolean`)
   return value
 }
 
 function nudgeKind(value: unknown): NudgeKind {
   if (value === 'water' || value === 'heading_home') return value
-  throw new DomainError('kind is invalid')
+  throw new DomainError('kind_invalid')
 }
 
 function send(res: ServerResponse, status: number, body: unknown) {

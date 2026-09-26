@@ -71,9 +71,7 @@ export type GuardianView = {
   drinker_name: string
   status: SessionStatus
   guardian_accepted: boolean
-  check_in_status: string
   last_ping: Ping | null
-  call_label: string
   needs_check_in_followup: boolean
   last_guardian_reminder_at: string | null
 }

@@ -1,3 +1,4 @@
+import { errorText } from '../copy'
 import type { NudgeKind } from '../domain/nudge'
 import type { CreateSessionInput, GuardianView, TonightSession } from '../domain/types'
 
@@ -12,6 +13,11 @@ export class ApiError extends Error {
     this.name = 'ApiError'
     this.status = status
   }
+}
+
+export function messageFrom(cause: unknown, fallback: string): string {
+  if (cause instanceof ApiError) return errorText(cause.message, fallback)
+  return fallback
 }
 
 export function createHttpApi(fetchImpl: typeof fetch = fetch) {
@@ -84,11 +90,14 @@ export function createHttpApi(fetchImpl: typeof fetch = fetch) {
         body: {},
       })
     },
-    advance(minutes: number) {
-      return request<{ server_now: string }>('/api/demo/advance', { method: 'POST', body: { minutes } })
+    advance(minutes: number, sessionId: string) {
+      return request<SessionResponse>('/api/demo/advance', {
+        method: 'POST',
+        body: { minutes, session_id: sessionId },
+      })
     },
     jumpPastGrace(sessionId: string) {
-      return request<{ server_now: string }>('/api/demo/jump', { method: 'POST', body: { session_id: sessionId } })
+      return request<SessionResponse>('/api/demo/jump', { method: 'POST', body: { session_id: sessionId } })
     },
   }
 }

@@ -2,18 +2,16 @@ import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
 import { App } from '../src/App'
-import { loggedLine } from '../src/copy'
+import { copy, loggedLine } from '../src/copy'
 import { createSparseLog, memoryStorage } from '../src/client/sparseLog'
 import {
-  actionsOpen,
   canUndo,
   createLogEvent,
   drinkBatch,
   drinkTap,
+  groupedVisibleLogs,
   loggedAtLeast,
-  loggedAtLeastCopy,
   tryUndo,
-  UNDO_WINDOW_MS,
   waterTap,
 } from '../src/domain/log'
 import { LOG_KINDS, LOG_SOURCES, type LogEvent } from '../src/domain/types'
@@ -23,7 +21,7 @@ import { createSessionStore } from '../src/server/sessionStore'
 import { sessionInput, T0 } from './helpers'
 
 describe('part 3 sparse drink log', () => {
-  it('logs a drink, a batch of two, and water, then undoes only inside 30 seconds', () => {
+  it('groups drinks and water, and undoes one cup at a time', () => {
     const storage = memoryStorage()
     const log = createSparseLog(storage, 'ses_1')
     const tap = drinkTap()
@@ -39,18 +37,28 @@ describe('part 3 sparse drink log', () => {
     events = log.add({ kind: 'extend', count: 1, source: 'widget', now: T0 + 3000 })
     events = log.add({ kind: 'pause', count: 1, source: 'watch', now: T0 + 4000 })
     expect(loggedAtLeast(events)).toBe(3)
-    expect(loggedAtLeastCopy(events)).toBe(loggedLine(3))
+    expect(loggedLine(loggedAtLeast(events))).toBe(loggedLine(3))
 
-    const drinkId = events[0].id
-    const undone = log.undo(drinkId, T0 + UNDO_WINDOW_MS)
-    expect(undone.ok).toBe(true)
-    expect(loggedAtLeast(undone.events)).toBe(2)
-    expect(canUndo(undone.events[0], T0 + UNDO_WINDOW_MS + 1)).toBe(false)
+    expect(groupedVisibleLogs(events)).toEqual([
+      { kind: 'drink', total: 3, latestId: events[1].id },
+      { kind: 'water', total: 1, latestId: events[2].id },
+    ])
 
-    const late = tryUndo(undone.events, events[1].id, T0 + 1000 + UNDO_WINDOW_MS + 1)
-    expect(late.ok).toBe(false)
-    expect(loggedAtLeast(late.events)).toBe(2)
-    expect(actionsOpen(1, loggedAtLeast(late.events))).toBe(true)
+    const once = log.undo(events[1].id)
+    expect(once.ok).toBe(true)
+    expect(once.events[1].count).toBe(1)
+    expect(once.events[1].undone).toBe(false)
+    expect(loggedAtLeast(once.events)).toBe(2)
+    expect(groupedVisibleLogs(once.events)[0]).toEqual({ kind: 'drink', total: 2, latestId: events[1].id })
+
+    const twice = tryUndo(once.events, events[1].id)
+    expect(twice.ok).toBe(true)
+    expect(twice.events[1].undone).toBe(true)
+    expect(canUndo(twice.events[1])).toBe(false)
+    expect(loggedAtLeast(twice.events)).toBe(1)
+    const cleared = tryUndo(twice.events, events[0].id)
+    expect(cleared.ok).toBe(true)
+    expect(loggedAtLeast(cleared.events)).toBe(0)
     expect(LOG_KINDS).toEqual(['drink', 'water', 'pause', 'home', 'extend'])
     expect(LOG_SOURCES).toEqual(['tap', 'widget', 'batch', 'watch'])
     expect(events.every((event) => event.session_id === 'ses_1')).toBe(true)
@@ -90,6 +98,9 @@ describe('part 3 sparse drink log', () => {
   it('shows at least N and does not describe a complete intake', () => {
     const html = renderToStaticMarkup(createElement(App, { initialHash: '#/tonight' }))
     expect(html).toContain(loggedLine(0))
+    expect(html).toContain(copy.drinkOne)
+    expect(html).toContain(copy.home)
+    expect(html).not.toContain('disabled')
     expect(html).not.toContain('人照看人')
     expect(html.toLowerCase()).not.toContain('total drinks')
     expect(html.toLowerCase()).not.toContain('complete intake')
@@ -102,6 +113,6 @@ describe('part 3 sparse drink log', () => {
         created_at: new Date(T0).toISOString(),
       }),
     ]
-    expect(loggedAtLeastCopy(sample)).toBe(loggedLine(2))
+    expect(loggedLine(loggedAtLeast(sample))).toBe(loggedLine(2))
   })
 })

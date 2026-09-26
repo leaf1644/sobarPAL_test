@@ -1,10 +1,13 @@
+import { createElement } from 'react'
+import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
+import { copy } from '../src/copy'
 import { SESSION_STATUSES } from '../src/domain/types'
 import { DEFAULT_GRACE_MINUTES } from '../src/domain/session'
+import { GuardianSwap } from '../src/screens/GuardianSwap'
 import { startApiServer } from '../src/server/api'
 import { fixedClock } from '../src/server/clock'
 import { createSessionStore } from '../src/server/sessionStore'
-import { copy } from '../src/copy'
 import { sessionInput, T0 } from './helpers'
 
 describe('part 1 tonight session', () => {
@@ -50,7 +53,17 @@ describe('part 1 tonight session', () => {
     expect(confirmed.status).toBe('planned')
     expect(confirmed.magic_token).not.toBe(session.magic_token)
     expect(store.getByToken(session.magic_token)).toBeNull()
-    expect(() => store.confirmGuardian(session.id)).toThrow(copy.errConfirmRequired)
+    expect(() => store.confirmGuardian(session.id)).toThrow('confirm_required')
+
+    const html = renderToStaticMarkup(
+      createElement(GuardianSwap, {
+        session: proposed,
+        onSession: () => undefined,
+        onError: () => undefined,
+      }),
+    )
+    expect(html).toContain(copy.confirmSwapButton)
+    expect(html).toContain(copy.cancelSwap)
 
     store.cancelGuardianChange(store.proposeGuardian(session.id, 'Ada').id)
     expect(store.getSnapshot(session.id)?.guardian_name).toBe('Lin')

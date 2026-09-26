@@ -4,8 +4,9 @@ import type { SessionStatus } from './domain/types'
 export const copy = {
   brand: '清醒夥伴',
   tagline: '出街玩得開心，有人掛住你返屋企。',
-  navPlan: '今晚點安排',
-  navTonight: '今晚',
+  navPlan: '創建行程',
+  navTonight: '記酒器',
+  navFocus: '停一停',
   navGuardian: '睇住朋友',
   legend: '可以記低飲咗一杯、停一停，或者話我返到屋企。',
   themeToLight: '淺色',
@@ -13,7 +14,7 @@ export const copy = {
   navLabel: '畫面',
 
   planEyebrow: '未出門',
-  planTitle: '今晚點安排',
+  planTitle: '創建行程',
   planLede: '講定邊個睇住你、大約幾點返到。另一部電腦開條連結就得。飲咗幾多唔會傳過去。',
   yourName: '你叫咩名',
   guardian: '邊個睇住你',
@@ -29,19 +30,19 @@ export const copy = {
   medsTitle: '食緊藥？',
   refusalTitle: '唔想飲可以咁講',
   medsAck: '我睇過呢啲提醒喇',
-  create: '定好今晚',
+  create: '創建行程',
   statusPrefix: '而家',
   linkHint: '將條連結開喺另一部電腦。',
   linkLabel: '條連結',
-  openTonight: '去今晚',
+  openTonight: '去記酒器',
   swapLabel: '換人睇住',
   swapButton: '換人睇住',
   cancelSwap: '算啦',
   confirmSwapButton: '係，換佢',
 
   tonightEyebrow: '而家',
-  tonightTitle: '今晚',
-  needPlan: '未定今晚就未記到。先去「今晚點安排」定好先。',
+  tonightTitle: '記酒器',
+  needPlan: '未創建行程就未記到。先去「創建行程」。',
   waiting: '等緊對方接',
   connected: '已經接咗',
   limitShort: '想飲',
@@ -66,7 +67,7 @@ export const copy = {
   clockHint: '示範時鐘。兩部電腦用同一個時間。',
   plusFifteen: '快轉十五分鐘',
   pastGrace: '快轉到過咗點',
-  cancelTonight: '今晚唔去喇',
+  cancelTonight: '取消記酒器',
 
   focusEyebrow: '停一停',
   focusTitle: '抖一抖。',
@@ -77,7 +78,7 @@ export const copy = {
   gameMatch: '搵一樣',
   gameLogic: '下一款係咩',
   pauseDone: '停完喇。',
-  backTonight: '返去今晚',
+  backTonight: '返去記酒器',
   reactionHint: '個目標出嚟先好撳。',
   start: '開始',
   waitTarget: '等陣，目標未出。',
@@ -97,19 +98,20 @@ export const copy = {
   lastPing: '最後位置',
   lastReminder: '上次提你',
 
-  errCreate: '定唔到今晚',
+  errCreate: '創建唔到行程',
   errSwap: '換唔到',
   errConfirm: '確認唔到',
-  errLoad: '載入唔到今晚',
-  errUndo: '過咗三十秒就撤銷唔到',
+  errLoad: '載入唔到記酒器',
+  errUndo: '撤銷唔到',
   errHome: '報唔到返到',
   errPing: '分享唔到位置',
   errClock: '調唔到時間',
   errCancel: '取消唔到',
   errOpen: '開唔到邀請',
   errAccept: '接唔到',
-  errNeedPlan: '先定好今晚先',
+  errNeedPlan: '先創建行程先',
   errConfirmRequired: '請先確認更換',
+  needChecks: '兩項都要勾，先創建到行程。',
 
   medsWarnings: [
     '有啲藥同酒一齊用，容易瞓、容易流血，肝臟亦辛苦啲。提醒嚟㗎咋，唔係診斷。',
@@ -120,6 +122,28 @@ export const copy = {
 
 export function loggedLine(count: number): string {
   return `至少記低咗 ${count} 杯`
+}
+
+export function nudgeText(kind: 'water' | 'heading_home'): string {
+  return kind === 'water' ? copy.nudgeWater : copy.nudgeHeading
+}
+
+export function errorText(code: string, fallback: string): string {
+  switch (code) {
+    case 'confirm_required':
+      return copy.errConfirmRequired
+    case 'location_not_shared':
+    case 'ping_label_required':
+      return copy.errPing
+    case 'already_home':
+      return copy.errHome
+    case 'session_ended':
+      return copy.errCancel
+    case 'minutes_invalid':
+      return copy.errClock
+    default:
+      return fallback
+  }
 }
 
 export function graceLine(minutes: number): string {

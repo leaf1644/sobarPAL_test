@@ -1,4 +1,3 @@
-import { copy } from '../copy'
 import type { NudgePolicy, SessionStatus, TonightSession } from './types'
 
 export const WATER_NUDGE_GAP_MS = 45 * 60 * 1000
@@ -58,11 +57,6 @@ export function evaluateSessionNudges(
     status: session.status,
     policy: clockFromPolicy(session.nudge_policy),
   })
-}
-
-export function nudgeCopy(kind: NudgeKind): string {
-  if (kind === 'water') return copy.nudgeWater
-  return copy.nudgeHeading
 }
 
 function clockFromPolicy(policy: NudgePolicy): NudgeClock {

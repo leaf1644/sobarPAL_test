@@ -3,7 +3,7 @@ import { join } from 'node:path'
 import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
-import { callLabel, copy, statusLabel } from '../src/copy'
+import { copy, statusLabel } from '../src/copy'
 import { GuardianCard } from '../src/screens/GuardianMode'
 import { isGuardianAlert } from '../src/domain/alert'
 import { createLogEvent, loggedAtLeast } from '../src/domain/log'
@@ -59,21 +59,20 @@ describe('part 2 I am home and missed check-in', () => {
       expect(JSON.stringify(before)).not.toContain('trail')
       expect(before?.status).toBe('active')
 
-      await postJson(`${server.url}/api/demo/advance`, { minutes: 191 })
+      const advanced = await postJson(`${server.url}/api/demo/advance`, { minutes: 191, session_id: id })
+      expect(advanced.session.status).toBe('missed')
       const guardian = (await (await fetch(`${server.url}/api/guardian/${token}`)).json()) as {
         view: {
           status: string
           drinker_name: string
-          check_in_status: string
-          call_label: string
           last_ping: { label: string } | null
           needs_check_in_followup: boolean
         }
       }
       expect(guardian.view.status).toBe('missed')
       expect(guardian.view.drinker_name).toBe('Chen')
-      expect(guardian.view.check_in_status).toBe(statusLabel('missed'))
-      expect(guardian.view.call_label).toBe(callLabel('Chen'))
+      expect(guardian.view).not.toHaveProperty('check_in_status')
+      expect(guardian.view).not.toHaveProperty('call_label')
       expect(guardian.view.needs_check_in_followup).toBe(true)
       expect(guardian.view.last_ping?.label).toBe('Taxi rank')
       expect(JSON.stringify(guardian.view)).not.toContain('personal_limit_serves')

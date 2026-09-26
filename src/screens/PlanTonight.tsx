@@ -1,13 +1,13 @@
 import { useEffect, useState, type FormEvent } from 'react'
-import { httpApi } from '../client/api'
-import { confirmSwapLine, copy, graceLine } from '../copy'
-import { DEFAULT_GRACE_MINUTES, checkInStatusLabel } from '../domain/session'
+import { httpApi, messageFrom } from '../client/api'
+import { copy, graceLine, statusLabel } from '../copy'
+import { DEFAULT_GRACE_MINUTES } from '../domain/session'
 import { medsForSurface } from '../domain/meds'
 import { magicLinkFromPage } from '../route'
 import type { TonightSession } from '../domain/types'
 import { defaultCheckInIso, fromDatetimeLocalValue, toDatetimeLocalValue } from '../time'
-
-const SESSION_KEY = 'soberpal.sessionId'
+import { GuardianSwap } from './GuardianSwap'
+import { SESSION_KEY } from './useDrinkerNight'
 
 export function PlanTonight() {
   const meds = medsForSurface('plan')
@@ -16,13 +16,12 @@ export function PlanTonight() {
   const [limit, setLimit] = useState(3)
   const [drinkType, setDrinkType] = useState('beer')
   const [checkIn, setCheckIn] = useState(() => toDatetimeLocalValue(defaultCheckInIso(Date.now())))
-  const [shareLocation, setShareLocation] = useState(true)
+  const [shareLocation, setShareLocation] = useState(false)
   const [medsConfirmed, setMedsConfirmed] = useState(false)
   const [session, setSession] = useState<TonightSession | null>(null)
-  const [link, setLink] = useState('')
-  const [nextGuardian, setNextGuardian] = useState('')
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
+  const checksReady = shareLocation && medsConfirmed
 
   useEffect(() => {
     if (!session) return
@@ -40,6 +39,10 @@ export function PlanTonight() {
 
   async function onCreate(event: FormEvent) {
     event.preventDefault()
+    if (!shareLocation || !medsConfirmed) {
+      setError(copy.needChecks)
+      return
+    }
     setBusy(true)
     setError('')
     try {
@@ -55,45 +58,15 @@ export function PlanTonight() {
       const next = created.session
       setSession(next)
       if (typeof sessionStorage !== 'undefined') sessionStorage.setItem(SESSION_KEY, next.id)
-      const page = typeof window === 'undefined' ? 'http://localhost/' : window.location.href
-      setLink(magicLinkFromPage(page, next.magic_token))
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : copy.errCreate)
+      setError(messageFrom(cause, copy.errCreate))
     } finally {
       setBusy(false)
     }
   }
 
-  async function propose() {
-    if (!session) return
-    setError('')
-    try {
-      const result = await httpApi.proposeGuardian(session.id, nextGuardian)
-      setSession(result.session)
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : copy.errSwap)
-    }
-  }
-
-  async function confirm() {
-    if (!session) return
-    setError('')
-    try {
-      const result = await httpApi.confirmGuardian(session.id)
-      setSession(result.session)
-      const page = typeof window === 'undefined' ? 'http://localhost/' : window.location.href
-      setLink(magicLinkFromPage(page, result.session.magic_token))
-      setNextGuardian('')
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : copy.errConfirm)
-    }
-  }
-
-  async function cancelChange() {
-    if (!session) return
-    const result = await httpApi.cancelGuardianChange(session.id)
-    setSession(result.session)
-  }
+  const page = typeof window === 'undefined' ? 'http://localhost/' : window.location.href
+  const link = session ? magicLinkFromPage(page, session.magic_token) : ''
 
   return (
     <section className="card">
@@ -152,6 +125,7 @@ export function PlanTonight() {
             name="share_location"
             type="checkbox"
             checked={shareLocation}
+            required
             onChange={(event) => setShareLocation(event.target.checked)}
           />
           {copy.shareLocation}
@@ -174,12 +148,14 @@ export function PlanTonight() {
               name="meds_confirmed"
               type="checkbox"
               checked={medsConfirmed}
+              required
               onChange={(event) => setMedsConfirmed(event.target.checked)}
             />
             {copy.medsAck}
           </label>
         </div>
-        <button type="submit" className="hit primary" disabled={busy}>
+        {!checksReady && <p className="quiet">{copy.needChecks}</p>}
+        <button type="submit" className="hit primary" disabled={busy || !checksReady}>
           {copy.create}
         </button>
       </form>
@@ -187,33 +163,14 @@ export function PlanTonight() {
       {session && (
         <div className="result">
           <p>
-            {copy.statusPrefix}：<strong data-testid="session-status">{checkInStatusLabel(session.status)}</strong>
+            {copy.statusPrefix}：<strong data-testid="session-status">{statusLabel(session.status)}</strong>
           </p>
           <p className="quiet">{copy.linkHint}</p>
           <input data-testid="magic-link" readOnly value={link} aria-label={copy.linkLabel} />
           <p>
             <a href={`#/tonight/${session.id}`}>{copy.openTonight}</a>
           </p>
-          <div className="stack">
-            <label>
-              {copy.swapLabel}
-              <input value={nextGuardian} onChange={(event) => setNextGuardian(event.target.value)} />
-            </label>
-            <button type="button" className="hit secondary" onClick={() => void propose()}>
-              {copy.swapButton}
-            </button>
-            {session.pending_guardian_name && (
-              <div className="confirm">
-                <p>{confirmSwapLine(session.pending_guardian_name)}</p>
-                <button type="button" className="hit" onClick={() => void confirm()}>
-                  {copy.confirmSwapButton}
-                </button>
-                <button type="button" className="hit secondary" onClick={() => void cancelChange()}>
-                  {copy.cancelSwap}
-                </button>
-              </div>
-            )}
-          </div>
+          <GuardianSwap session={session} onSession={setSession} onError={setError} />
         </div>
       )}
     </section>

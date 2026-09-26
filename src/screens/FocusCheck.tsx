@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import { copy, shapeWord } from '../copy'
 import {
-  FOCUS_DISCLAIMER,
   FOCUS_ROUND_SECONDS,
   completeFocusRound,
   logicRound,
@@ -40,7 +39,7 @@ export function FocusCheck({
     <section className="card focus-card" aria-label={copy.focus}>
       <p className="eyebrow">{copy.focusEyebrow}</p>
       <h2>{copy.focusTitle}</h2>
-      <p className="disclaimer">{FOCUS_DISCLAIMER}</p>
+      <p className="disclaimer">{copy.focusDisclaimer}</p>
       <p className="quiet">{copy.focusNote}</p>
       <div className="game-picks" role="group" aria-label={copy.gamesLabel}>
         {(['reaction', 'match', 'logic'] as const).map((item) => (

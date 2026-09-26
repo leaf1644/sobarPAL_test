@@ -1,8 +1,5 @@
-import { loggedLine } from '../copy'
 import { DomainError } from './errors'
 import type { LogEvent, LogKind, LogSource } from './types'
-
-export const UNDO_WINDOW_MS = 30_000
 
 let logSeq = 0
 
@@ -27,7 +24,7 @@ export function createLogEvent(input: {
   created_at: string
 }): LogEvent {
   if (!Number.isFinite(input.count) || input.count <= 0) {
-    throw new DomainError('count must be positive')
+    throw new DomainError('count_positive')
   }
   logSeq += 1
   return {
@@ -48,29 +45,40 @@ export function loggedAtLeast(events: LogEvent[]): number {
   }, 0)
 }
 
-export function loggedAtLeastCopy(events: LogEvent[]): string {
-  return loggedLine(loggedAtLeast(events))
+export type LogGroup = {
+  kind: 'drink' | 'water'
+  total: number
+  latestId: string
 }
 
-export function canUndo(event: LogEvent, nowMs: number): boolean {
-  if (event.undone) return false
-  return nowMs - Date.parse(event.created_at) <= UNDO_WINDOW_MS
+/** One line per drink or water, summing every cup that has not been undone. */
+export function groupedVisibleLogs(events: LogEvent[]): LogGroup[] {
+  return (['drink', 'water'] as const).flatMap((kind) => {
+    const active = events.filter((event) => event.kind === kind && !event.undone)
+    if (active.length === 0) return []
+    return [
+      {
+        kind,
+        total: active.reduce((sum, event) => sum + event.count, 0),
+        latestId: active[active.length - 1].id,
+      },
+    ]
+  })
 }
 
-export function tryUndo(
-  events: LogEvent[],
-  id: string,
-  nowMs: number,
-): { ok: boolean; events: LogEvent[] } {
+export function canUndo(event: LogEvent): boolean {
+  return !event.undone && event.count > 0
+}
+
+export function tryUndo(events: LogEvent[], id: string): { ok: boolean; events: LogEvent[] } {
   const current = events.find((event) => event.id === id)
-  if (!current || !canUndo(current, nowMs)) return { ok: false, events }
+  if (!current || !canUndo(current)) return { ok: false, events }
   return {
     ok: true,
-    events: events.map((event) => (event.id === id ? { ...event, undone: true } : event)),
+    events: events.map((event) => {
+      if (event.id !== id) return event
+      if (event.count > 1) return { ...event, count: event.count - 1 }
+      return { ...event, undone: true }
+    }),
   }
-}
-
-/** Remaining drinks never lock a night action. */
-export function actionsOpen(_personalLimit: number, _logged: number): true {
-  return true
 }

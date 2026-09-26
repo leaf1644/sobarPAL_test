@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import { isGuardianAlert } from '../src/domain/alert'
 import { loggedAtLeast, createLogEvent } from '../src/domain/log'
-import { evaluateNudges, evaluateSessionNudges, nudgeCopy, WATER_NUDGE_GAP_MS, NUDGE_MIN_GAP_MS, HEADING_HOME_BEFORE_MS } from '../src/domain/nudge'
+import { evaluateNudges, evaluateSessionNudges, WATER_NUDGE_GAP_MS, NUDGE_MIN_GAP_MS, HEADING_HOME_BEFORE_MS } from '../src/domain/nudge'
 import { emptyNudgePolicy } from '../src/domain/session'
 import { fixedClock } from '../src/server/clock'
 import { createSessionStore } from '../src/server/sessionStore'
-import { copy } from '../src/copy'
+import { copy, nudgeText } from '../src/copy'
 import { sessionInput, T0 } from './helpers'
 
 const CHECK_IN = T0 + 3 * 60 * 60 * 1000
@@ -15,8 +15,8 @@ describe('part 4 session watch nudges', () => {
   it('caps water at 45 minutes, heading-home at one, and any nudge at 30 minutes', () => {
     const early = activeAt()
     expect(evaluateSessionNudges(early.session, T0)).toBe('water')
-    expect(nudgeCopy('water')).toBe(copy.nudgeWater)
-    expect(nudgeCopy('heading_home')).toBe(copy.nudgeHeading)
+    expect(nudgeText('water')).toBe(copy.nudgeWater)
+    expect(nudgeText('heading_home')).toBe(copy.nudgeHeading)
 
     early.store.noteNudge(early.session.id, 'water', T0)
     const noted = early.store.getSnapshot(early.session.id)!

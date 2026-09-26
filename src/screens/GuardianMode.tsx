@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { httpApi } from '../client/api'
-import { callingLine, copy, lookingAfter, missedLine } from '../copy'
+import { callLabel, callingLine, copy, lookingAfter, missedLine, statusLabel } from '../copy'
 import { showGuardianAccept } from '../domain/session'
 import type { GuardianView } from '../domain/types'
 
@@ -74,9 +74,9 @@ export function GuardianCard({
   return (
     <>
       <p>
-        {copy.statusPrefix}：<strong data-testid="session-status">{view.check_in_status}</strong>
+        {copy.statusPrefix}：<strong data-testid="session-status">{statusLabel(view.status)}</strong>
       </p>
-      <p data-testid="check-in-status">{view.check_in_status}</p>
+      <p data-testid="check-in-status">{statusLabel(view.status)}</p>
       {view.needs_check_in_followup && (
         <p className="banner">{missedLine(view.drinker_name)}</p>
       )}
@@ -90,7 +90,7 @@ export function GuardianCard({
         <p className="quiet">{copy.noPing}</p>
       )}
       <button type="button" className="hit call" data-testid="guardian-call" onClick={onCall}>
-        {view.call_label}
+        {callLabel(view.drinker_name)}
       </button>
       {calling && <p>{callingLine(view.drinker_name)}</p>}
       {showGuardianAccept(view) && (

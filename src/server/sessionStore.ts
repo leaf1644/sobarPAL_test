@@ -65,7 +65,7 @@ export function createSessionStore(options?: { persistPath?: string; clock?: Clo
 
   function must(id: string): TonightSession {
     const session = sessions.get(id)
-    if (!session) throw new DomainError('session not found', 404)
+    if (!session) throw new DomainError('session_not_found', 404)
     return session
   }
 
@@ -73,7 +73,7 @@ export function createSessionStore(options?: { persistPath?: string; clock?: Clo
     for (const session of sessions.values()) {
       if (session.magic_token === token) return session
     }
-    throw new DomainError('session not found', 404)
+    throw new DomainError('session_not_found', 404)
   }
 
   const store: SessionStore = {
@@ -143,7 +143,7 @@ export function createSessionStore(options?: { persistPath?: string; clock?: Clo
     },
     advance(minutes) {
       if (!Number.isFinite(minutes) || minutes <= 0 || minutes > 24 * 60) {
-        throw new DomainError('minutes must be a positive number up to 1440')
+        throw new DomainError('minutes_invalid')
       }
       clock.advance(minutes * 60_000)
       store.watchdogTick(clock.now())

@@ -1,9 +1,8 @@
-import { callLabel, copy, statusLabel } from '../copy'
-import { deadlineMs, isGuardianAlert, isReminderDue } from './alert'
+import { isGuardianAlert, isReminderDue } from './alert'
 import { DomainError } from './errors'
 import { storeMedsAck } from './meds'
 import type { NudgeKind } from './nudge'
-import type { CreateSessionInput, GuardianView, NudgePolicy, SessionStatus, TonightSession } from './types'
+import type { CreateSessionInput, GuardianView, NudgePolicy, TonightSession } from './types'
 
 export const DEFAULT_GRACE_MINUTES = 10
 
@@ -23,18 +22,18 @@ export function createSessionRecord(
 ): TonightSession {
   const drinkerName = input.drinker_name.trim()
   const guardianName = input.guardian_name.trim()
-  if (!drinkerName) throw new DomainError('drinker_name is required')
-  if (!guardianName) throw new DomainError('guardian_name is required')
+  if (!drinkerName) throw new DomainError('drinker_name_required')
+  if (!guardianName) throw new DomainError('guardian_name_required')
   const checkIn = Date.parse(input.check_in_at)
-  if (Number.isNaN(checkIn)) throw new DomainError('check_in_at is invalid')
+  if (Number.isNaN(checkIn)) throw new DomainError('check_in_at_invalid')
   if (!Number.isInteger(input.personal_limit_serves) || input.personal_limit_serves < 0) {
-    throw new DomainError('personal_limit_serves must be a whole number')
+    throw new DomainError('personal_limit_invalid')
   }
   const drink = input.primary_drink_type.trim()
-  if (!drink) throw new DomainError('primary_drink_type is required')
+  if (!drink) throw new DomainError('primary_drink_type_required')
   const grace = input.grace_minutes ?? DEFAULT_GRACE_MINUTES
   if (!Number.isInteger(grace) || grace < 0 || grace > 180) {
-    throw new DomainError('grace_minutes is invalid')
+    throw new DomainError('grace_minutes_invalid')
   }
   const nowIso = new Date(nowMs).toISOString()
   return {
@@ -66,13 +65,13 @@ export function createSessionRecord(
 export function proposeGuardian(session: TonightSession, guardianName: string): TonightSession {
   assertOpen(session)
   const name = guardianName.trim()
-  if (!name) throw new DomainError('guardian_name is required')
+  if (!name) throw new DomainError('guardian_name_required')
   return { ...session, pending_guardian_name: name }
 }
 
 export function confirmGuardian(session: TonightSession, newToken: string): TonightSession {
   assertOpen(session)
-  if (!session.pending_guardian_name) throw new DomainError(copy.errConfirmRequired)
+  if (!session.pending_guardian_name) throw new DomainError('confirm_required')
   const missed = session.status === 'missed'
   return {
     ...session,
@@ -92,7 +91,7 @@ export function cancelGuardianChange(session: TonightSession): TonightSession {
 
 export function acceptGuardian(session: TonightSession): TonightSession {
   if (session.status === 'home' || session.status === 'cancelled') {
-    throw new DomainError('session ended')
+    throw new DomainError('session_ended')
   }
   if (session.guardian_accepted && (session.status === 'active' || session.status === 'missed')) {
     return session
@@ -115,7 +114,7 @@ export function acceptGuardian(session: TonightSession): TonightSession {
 }
 
 export function markHome(session: TonightSession, nowMs: number): TonightSession {
-  if (session.status === 'cancelled') throw new DomainError('session ended')
+  if (session.status === 'cancelled') throw new DomainError('session_ended')
   if (session.status === 'home') return session
   return {
     ...session,
@@ -127,7 +126,7 @@ export function markHome(session: TonightSession, nowMs: number): TonightSession
 }
 
 export function cancelSession(session: TonightSession, nowMs: number): TonightSession {
-  if (session.status === 'home') throw new DomainError('already home')
+  if (session.status === 'home') throw new DomainError('already_home')
   if (session.status === 'cancelled') return session
   return {
     ...session,
@@ -140,10 +139,10 @@ export function cancelSession(session: TonightSession, nowMs: number): TonightSe
 
 export function recordPing(session: TonightSession, label: string, nowMs: number): TonightSession {
   if (!(session.status === 'active' && session.guardian_accepted && session.share_location)) {
-    throw new DomainError('location is not being shared')
+    throw new DomainError('location_not_shared')
   }
   const text = label.trim()
-  if (!text) throw new DomainError('ping label required')
+  if (!text) throw new DomainError('ping_label_required')
   return { ...session, last_ping: { at: new Date(nowMs).toISOString(), label: text } }
 }
 
@@ -196,18 +195,12 @@ export function noteNudge(session: TonightSession, kind: NudgeKind, nowMs: numbe
   }
 }
 
-export function checkInStatusLabel(status: SessionStatus): string {
-  return statusLabel(status)
-}
-
 export function toGuardianView(session: TonightSession): GuardianView {
   return {
     drinker_name: session.drinker_name,
     status: session.status,
     guardian_accepted: session.guardian_accepted,
-    check_in_status: checkInStatusLabel(session.status),
     last_ping: pingVisible(session) ? session.last_ping : null,
-    call_label: callLabel(session.drinker_name),
     needs_check_in_followup: session.status === 'missed',
     last_guardian_reminder_at: session.last_guardian_reminder_at,
   }
@@ -224,11 +217,9 @@ export function pingVisible(session: TonightSession): boolean {
   return session.status === 'active' && session.share_location
 }
 
-export { deadlineMs }
-
 function assertOpen(session: TonightSession) {
   if (session.status === 'home' || session.status === 'cancelled') {
-    throw new DomainError('session ended')
+    throw new DomainError('session_ended')
   }
 }
 

@@ -18,7 +18,7 @@ describe('part 0 scaffold', () => {
     const plan = renderToStaticMarkup(createElement(App))
     expect(plan).toContain(copy.navPlan)
     expect(plan).toContain(copy.navTonight)
-    expect(plan).toContain(copy.navGuardian)
+    expect(plan).not.toContain('href="#/guardian"')
     expect(plan).toContain(`class="theme-switch">${copy.themeToLight}`)
     expect(plan).not.toContain(`class="theme-switch">${copy.themeToDark}`)
     expect(plan).toContain(copy.tagline)
@@ -28,7 +28,7 @@ describe('part 0 scaffold', () => {
     expect(light).toContain(`class="theme-switch">${copy.themeToDark}`)
     expect(light).toContain(copy.navPlan)
     expect(light).toContain(copy.navTonight)
-    expect(light).toContain(copy.navGuardian)
+    expect(light).not.toContain('href="#/guardian"')
     expect(light).not.toContain('人照看人')
 
     const tonight = renderToStaticMarkup(createElement(App, { initialHash: '#/tonight' }))
@@ -44,8 +44,13 @@ describe('part 0 scaffold', () => {
   it('parses a guardian magic link for the second computer', () => {
     expect(parseHash('#/plan')).toEqual({ name: 'plan' })
     expect(parseHash('#/tonight/ses_1')).toEqual({ name: 'tonight', id: 'ses_1' })
+    expect(parseHash('#/focus/ses_1')).toEqual({ name: 'focus', id: 'ses_1' })
     expect(parseHash('#/guardian')).toEqual({ name: 'guardian' })
     expect(parseHash('#/g/tok_abc')).toEqual({ name: 'guardian-session', token: 'tok_abc' })
+    const linked = renderToStaticMarkup(createElement(App, { initialHash: '#/g/tok_abc' }))
+    expect(linked).not.toContain('href="#/plan"')
+    expect(linked).not.toContain('href="#/guardian"')
+    expect(linked).toContain(copy.guardianTitle)
     expect(magicLinkFromPage('http://10.0.0.8:5173/', 'tok_abc')).toBe('http://10.0.0.8:5173/#/g/tok_abc')
   })
 

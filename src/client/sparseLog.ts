@@ -1,4 +1,5 @@
-import { createLogEvent, loggedAtLeastCopy, tryUndo } from '../domain/log'
+import { loggedLine } from '../copy'
+import { createLogEvent, loggedAtLeast, tryUndo } from '../domain/log'
 import type { LogEvent, LogKind, LogSource } from '../domain/types'
 
 export interface StorageLike {
@@ -37,8 +38,8 @@ export function createSparseLog(storage: StorageLike, sessionId: string) {
       write(events)
       return events
     },
-    undo(id: string, now: number) {
-      const result = tryUndo(read(), id, now)
+    undo(id: string) {
+      const result = tryUndo(read(), id)
       if (result.ok) write(result.events)
       return result
     },
@@ -46,7 +47,7 @@ export function createSparseLog(storage: StorageLike, sessionId: string) {
       storage.removeItem(key)
     },
     copy() {
-      return loggedAtLeastCopy(read())
+      return loggedLine(loggedAtLeast(read()))
     },
   }
 }

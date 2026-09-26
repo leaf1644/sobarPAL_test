@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { copy } from './copy'
 import { currentHash, parseHash } from './route'
+import { FocusNight } from './screens/FocusNight'
 import { GuardianMode } from './screens/GuardianMode'
 import { PlanTonight } from './screens/PlanTonight'
 import { Tonight } from './screens/Tonight'
@@ -46,17 +47,19 @@ export function App({ initialHash, initialTheme }: { initialHash?: string; initi
           <p className="brand">{copy.brand}</p>
           <p className="tagline">{copy.tagline}</p>
         </div>
-        <nav className="modes" aria-label={copy.navLabel}>
-          <a href="#/plan">{copy.navPlan}</a>
-          <a href="#/tonight">{copy.navTonight}</a>
-          <a href="#/guardian">{copy.navGuardian}</a>
-        </nav>
-        <p className="legend">{copy.legend}</p>
+        {route.name !== 'guardian-session' && (
+          <nav className="modes" aria-label={copy.navLabel}>
+            <a href="#/plan">{copy.navPlan}</a>
+            <a href="#/tonight">{copy.navTonight}</a>
+            <a href="#/focus">{copy.navFocus}</a>
+          </nav>
+        )}
+        {route.name !== 'guardian-session' && <p className="legend">{copy.legend}</p>}
       </header>
       <main>
-        {route.name === 'plan' && <PlanTonight />}
+        {(route.name === 'plan' || route.name === 'guardian') && <PlanTonight />}
         {route.name === 'tonight' && <Tonight sessionId={route.id} />}
-        {route.name === 'guardian' && <GuardianMode />}
+        {route.name === 'focus' && <FocusNight sessionId={route.id} />}
         {route.name === 'guardian-session' && <GuardianMode token={route.token} />}
       </main>
     </div>

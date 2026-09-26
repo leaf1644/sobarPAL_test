@@ -52,7 +52,7 @@ logged_at_least := sum(drink.count where not undone)
 
 - [x] + Drink、+ Water
 - [x] 可一次 +2（batch）
-- [x] 30 秒內 Undo
+- [x] 撤銷留在該行，不限 30 秒（時鐘參數與「減一杯」見第 8 項）
 - [x] 顯示「至少記了 N」，N 只算未復原的 drink.count
 - [x] log_event：kind（drink | water | pause | home | extend）、count、source、undone
 - [ ] 點擊目標 ≥ 48 dp；解鎖後一鍵 ≤ 2 秒
@@ -90,6 +90,16 @@ logged_at_least := sum(drink.count where not undone)
 - [ ] 鎖定畫面／桌面小工具 +1
 - [ ] 手錶 complication
 - [ ] 對應 log source：widget、watch
+
+## 8. 代碼結構（審查後要收）
+
+行為保持不變。一次做一項，做完再進下一項。
+
+- [x] 今晚頁與規劃頁共用「更換守護者」元件。今晚頁拆開紀錄、提醒、到家；輪詢與記下提醒不要和按鈕寫在同一個函數。抽完後兩邊都要有「取消更換」（目前只在規劃頁）
+- [x] `src/server/api.ts` 的 `dispatch` 收成一個寫入包裝：改 store、watchdog tick、再回傳快照與 `server_now`。讀取只 tick 再回傳。`advance` 與 `jump` 走同一個包裝，跳完時間的回應帶上新狀態
+- [x] 刪除永遠為真、而且忽略參數的包裝：`actionsOpen`、`imHomeAllowed`、`requestHome` 裡走不到的拋錯、`checkInStatusLabel`（畫面直接用 `statusLabel`）、`FOCUS_DISCLAIMER`（畫面直接用 `copy.focusDisclaimer`）。保留 `completeFocusRound`。測試改為斷言「返到屋企」仍在，專注結果沒有及格欄位
+- [x] 領域層與 API 只交狀態與名字，不交已翻譯的句子。`toGuardianView` 不再帶 `check_in_status`、`call_label`。錯誤用穩定代碼，畫面用 `src/copy.ts` 對成句子。`loggedAtLeastCopy`、`nudgeCopy` 的組句移到畫面
+- [x] 撤銷已不限時，刪掉 `canUndo`、`tryUndo`、`sparseLog.undo` 的 `nowMs`。分組列上的撤銷改為減一杯；現在撤的是最新一筆事件，該筆若是 +2，畫面上的總數會一次少 2
 
 ## 隱私與資料保留
 

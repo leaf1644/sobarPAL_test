@@ -1,8 +1,4 @@
-import { copy } from '../copy'
-import type { TonightSession } from './types'
-
 export const FOCUS_ROUND_SECONDS = 30
-export const FOCUS_DISCLAIMER = copy.focusDisclaimer
 
 export const FOCUS_GAMES = ['reaction', 'match', 'logic'] as const
 export type FocusGame = (typeof FOCUS_GAMES)[number]
@@ -67,19 +63,4 @@ export function sessionAfterFocusCheck<T>(session: T, outcome: FocusOutcome): T 
     throw new Error('Focus Check cannot carry a pass or fail')
   }
   return session
-}
-
-export function imHomeAllowed(_focus: { active: boolean; outcome: FocusOutcome | null }): true {
-  return true
-}
-
-export function requestHome(
-  session: TonightSession,
-  focus: { active: boolean; outcome: FocusOutcome | null },
-): { proceed: true; session: TonightSession } {
-  if (imHomeAllowed(focus) !== true) {
-    throw new Error("I'm home must stay available")
-  }
-  const next = focus.outcome ? sessionAfterFocusCheck(session, focus.outcome) : session
-  return { proceed: true, session: next }
 }

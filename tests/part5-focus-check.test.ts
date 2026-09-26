@@ -1,18 +1,16 @@
 import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
+import { App } from '../src/App'
 import { copy } from '../src/copy'
 import { FocusCheck } from '../src/screens/FocusCheck'
 import { isGuardianAlert } from '../src/domain/alert'
 import {
-  FOCUS_DISCLAIMER,
   FOCUS_ROUND_SECONDS,
   completeFocusRound,
-  imHomeAllowed,
   logicRound,
   matchRound,
   reactionScript,
-  requestHome,
   sessionAfterFocusCheck,
 } from '../src/domain/focusCheck'
 import { startApiServer } from '../src/server/api'
@@ -51,11 +49,15 @@ describe('part 5 focus check', () => {
     const after = sessionAfterFocusCheck(session, outcome)
     expect(after.status).toBe(session.status)
     expect(isGuardianAlert(after, T0)).toBe(isGuardianAlert(session, T0))
-    expect(imHomeAllowed({ active: true, outcome: null })).toBe(true)
-    expect(imHomeAllowed({ active: true, outcome })).toBe(true)
-    const decision = requestHome(session, { active: true, outcome })
-    expect(decision.proceed).toBe(true)
-    expect(decision.session.status).toBe('active')
+    expect(outcome.passed).toBeNull()
+    const tonight = renderToStaticMarkup(createElement(App, { initialHash: '#/tonight' }))
+    const focus = renderToStaticMarkup(createElement(App, { initialHash: '#/focus' }))
+    expect(tonight).toContain(copy.home)
+    expect(tonight).not.toContain(copy.focusDisclaimer)
+    expect(tonight).not.toContain(copy.gameReaction)
+    expect(focus).toContain(copy.home)
+    expect(focus).toContain(copy.focusDisclaimer)
+    expect(focus).toContain(copy.gameReaction)
 
     const server = await startApiServer(store)
     try {
@@ -80,7 +82,7 @@ describe('part 5 focus check', () => {
         onHome: () => undefined,
       }),
     )
-    expect(html).toContain(FOCUS_DISCLAIMER)
+    expect(html).toContain(copy.focusDisclaimer)
     expect(html).toContain(copy.gameReaction)
     expect(html).toContain(copy.gameMatch)
     expect(html).toContain(copy.gameLogic)

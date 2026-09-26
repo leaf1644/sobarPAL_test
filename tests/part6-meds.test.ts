@@ -2,6 +2,7 @@ import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
 import { App } from '../src/App'
+import { copy } from '../src/copy'
 import { MEDS_WARNINGS, REFUSAL_SCRIPTS, medsForSurface, storeMedsAck } from '../src/domain/meds'
 import { startApiServer } from '../src/server/api'
 import { fixedClock } from '../src/server/clock'
@@ -51,6 +52,12 @@ describe('part 6 meds warning', () => {
     const tonight = renderToStaticMarkup(createElement(App, { initialHash: '#/tonight' }))
     expect(plan).toContain(MEDS_WARNINGS[0])
     expect(plan).toContain(REFUSAL_SCRIPTS[0])
+    expect(plan).toContain(copy.needChecks)
+    expect(plan).toContain('name="share_location"')
+    expect(plan).toContain('name="meds_confirmed"')
+    expect(plan).not.toMatch(/name="share_location"[^>]*checked/)
+    expect(plan).not.toMatch(/name="meds_confirmed"[^>]*checked/)
+    expect(plan).toContain(`disabled="">${copy.create}`)
     expect(tonight).not.toContain(MEDS_WARNINGS[0])
     expect(tonight).not.toContain(REFUSAL_SCRIPTS[0])
   })
