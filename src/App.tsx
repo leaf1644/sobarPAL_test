@@ -12,9 +12,9 @@ function readTheme(): Theme {
   return localStorage.getItem('soberpal.theme') === 'light' ? 'light' : 'dark'
 }
 
-export function App({ initialHash }: { initialHash?: string }) {
+export function App({ initialHash, initialTheme }: { initialHash?: string; initialTheme?: Theme }) {
   const [hash, setHash] = useState(initialHash ?? currentHash())
-  const [theme, setTheme] = useState<Theme>(readTheme)
+  const [theme, setTheme] = useState<Theme>(initialTheme ?? readTheme)
 
   useEffect(() => {
     if (initialHash) return

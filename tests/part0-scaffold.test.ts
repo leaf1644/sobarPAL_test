@@ -19,9 +19,17 @@ describe('part 0 scaffold', () => {
     expect(plan).toContain(copy.navPlan)
     expect(plan).toContain(copy.navTonight)
     expect(plan).toContain(copy.navGuardian)
-    expect(plan).toContain(copy.themeToLight)
+    expect(plan).toContain(`class="theme-switch">${copy.themeToLight}`)
+    expect(plan).not.toContain(`class="theme-switch">${copy.themeToDark}`)
     expect(plan).toContain(copy.tagline)
     expect(plan).not.toContain('人照看人')
+
+    const light = renderToStaticMarkup(createElement(App, { initialTheme: 'light' }))
+    expect(light).toContain(`class="theme-switch">${copy.themeToDark}`)
+    expect(light).toContain(copy.navPlan)
+    expect(light).toContain(copy.navTonight)
+    expect(light).toContain(copy.navGuardian)
+    expect(light).not.toContain('人照看人')
 
     const tonight = renderToStaticMarkup(createElement(App, { initialHash: '#/tonight' }))
     expect(tonight).toContain(`>${copy.navTonight}<`)
