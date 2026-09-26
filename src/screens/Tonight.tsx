@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { ApiError, httpApi } from '../client/api'
 import { createSparseLog, memoryStorage, type StorageLike } from '../client/sparseLog'
 import { actionsOpen, canUndo, drinkBatch, drinkTap, loggedAtLeast, loggedAtLeastCopy, waterTap } from '../domain/log'
-import { drinkTypeLabel, logKindLabel } from '../copy'
+import { confirmSwapLine, copy, drinkWord, logWord } from '../copy'
 import { checkInStatusLabel } from '../domain/session'
 import { evaluateSessionNudges, nudgeCopy, type NudgeKind } from '../domain/nudge'
 import { requestHome, sessionAfterFocusCheck, type FocusOutcome } from '../domain/focusCheck'
@@ -47,7 +47,7 @@ export function Tonight({ sessionId }: { sessionId?: string }) {
           logRef.current?.clear()
           setEvents([])
         }
-        if (!stop) setError(cause instanceof Error ? cause.message : '無法載入今晚')
+        if (!stop) setError(cause instanceof Error ? cause.message : copy.errLoad)
       }
     }
     void load()
@@ -83,7 +83,7 @@ export function Tonight({ sessionId }: { sessionId?: string }) {
 
   function addDrink(count: 1 | 2) {
     if (!session || !logRef.current) {
-      setError('請先規劃今晚')
+      setError(copy.errNeedPlan)
       return
     }
     const spec = count === 2 ? drinkBatch() : drinkTap()
@@ -93,7 +93,7 @@ export function Tonight({ sessionId }: { sessionId?: string }) {
 
   function addWater() {
     if (!session || !logRef.current) {
-      setError('請先規劃今晚')
+      setError(copy.errNeedPlan)
       return
     }
     const spec = waterTap()
@@ -106,12 +106,12 @@ export function Tonight({ sessionId }: { sessionId?: string }) {
     if (!logRef.current) return
     const result = logRef.current.undo(id, nowMs)
     remember(result.events)
-    if (!result.ok) setError('只有三十秒內可以復原')
+    if (!result.ok) setError(copy.errUndo)
   }
 
   async function goHome() {
     if (!session) {
-      setError('請先規劃今晚')
+      setError(copy.errNeedPlan)
       return
     }
     const decision = requestHome(session, { active: focus, outcome: null })
@@ -126,7 +126,7 @@ export function Tonight({ sessionId }: { sessionId?: string }) {
         remember(logRef.current.add({ kind: 'home', count: 1, source: 'tap', now: Date.parse(result.server_now) }))
       }
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : '無法回報到家')
+      setError(cause instanceof Error ? cause.message : copy.errHome)
     }
   }
 
@@ -146,7 +146,7 @@ export function Tonight({ sessionId }: { sessionId?: string }) {
       setServerNow(result.server_now)
       setPing('')
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : '無法分享位置')
+      setError(cause instanceof Error ? cause.message : copy.errPing)
     }
   }
 
@@ -162,7 +162,7 @@ export function Tonight({ sessionId }: { sessionId?: string }) {
       await httpApi.advance(minutes)
       await reload(session.id)
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : '無法調整時間')
+      setError(cause instanceof Error ? cause.message : copy.errClock)
     }
   }
 
@@ -172,7 +172,7 @@ export function Tonight({ sessionId }: { sessionId?: string }) {
       await httpApi.jumpPastGrace(session.id)
       await reload(session.id)
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : '無法調整時間')
+      setError(cause instanceof Error ? cause.message : copy.errClock)
     }
   }
 
@@ -182,7 +182,7 @@ export function Tonight({ sessionId }: { sessionId?: string }) {
       const result = await httpApi.proposeGuardian(session.id, nextGuardian)
       setSession(result.session)
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : '無法準備更換')
+      setError(cause instanceof Error ? cause.message : copy.errSwap)
     }
   }
 
@@ -193,7 +193,7 @@ export function Tonight({ sessionId }: { sessionId?: string }) {
       setSession(result.session)
       setNextGuardian('')
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : '確認失敗')
+      setError(cause instanceof Error ? cause.message : copy.errConfirm)
     }
   }
 
@@ -208,64 +208,64 @@ export function Tonight({ sessionId }: { sessionId?: string }) {
     <div className="tonight">
       {session?.needs_ok_prompt && (
         <p className="banner sticky" data-testid="are-you-ok">
-          你還好嗎？
+          {copy.areYouOk}
         </p>
       )}
       {focus && session ? (
         <FocusCheck onLeave={leaveFocus} onDrink={() => addDrink(1)} onDrinkBatch={() => addDrink(2)} onHome={() => void goHome()} />
       ) : (
         <section className="card">
-          <p className="eyebrow">今晚</p>
-          <h2>今晚</h2>
+          <p className="eyebrow">{copy.tonightEyebrow}</p>
+          <h2>{copy.tonightTitle}</h2>
           {session ? (
             <p>
-              狀態：<strong data-testid="session-status">{checkInStatusLabel(session.status)}</strong>
+              {copy.statusPrefix}：<strong data-testid="session-status">{checkInStatusLabel(session.status)}</strong>
             </p>
           ) : (
-            <p>請先到規劃今晚建立時段。下面的動作要有時段才會記下來。</p>
+            <p>{copy.needPlan}</p>
           )}
           {session && (
             <p className="quiet">
-              {session.drinker_name} · 守護者 {session.guardian_name}
-              {session.guardian_accepted ? ' · 已連線' : ' · 等待接受'} · 上限 {session.personal_limit_serves}{' '}
-              {drinkTypeLabel(session.primary_drink_type)}
+              {session.drinker_name} · {copy.guardian} {session.guardian_name}
+              {session.guardian_accepted ? ` · ${copy.connected}` : ` · ${copy.waiting}`} · {copy.limitShort}{' '}
+              {session.personal_limit_serves} {copy.cups} {drinkWord(session.primary_drink_type)}
             </p>
           )}
           <p data-testid="logged-at-least">{loggedAtLeastCopy(events)}</p>
-          <p className="quiet">至少記了這些，不是完整紀錄。剩下幾杯不會鎖住任何按鈕。</p>
+          <p className="quiet">{copy.logHint}</p>
           {banner && (
             <div className="banner" data-testid="nudge-banner">
               <p>{nudgeCopy(banner)}</p>
               <button type="button" className="hit" onClick={addWater}>
-                記喝水
+                {copy.water}
               </button>
               <button type="button" className="hit secondary" onClick={() => setBanner(null)}>
-                現在不用
+                {copy.notNow}
               </button>
               <button type="button" className="hit secondary" onClick={() => void dismiss()}>
-                今晚不再提醒
+                {copy.dismiss}
               </button>
             </div>
           )}
           <NightActions
             onDrink={() => addDrink(1)}
             onDrinkBatch={() => addDrink(2)}
-            onFocus={() => (session ? setFocus(true) : setError('請先規劃今晚'))}
+            onFocus={() => (session ? setFocus(true) : setError(copy.errNeedPlan))}
             onHome={() => void goHome()}
           />
           <button type="button" className="hit water" onClick={addWater} disabled={!open}>
-            記喝水
+            {copy.water}
           </button>
           <ul className="log-list">
             {events.map((event) => (
               <li key={event.id}>
                 <span>
-                  {event.undone ? '已復原 ' : ''}
-                  {logKindLabel(event.kind)} × {event.count}
+                  {event.undone ? `${copy.undone} ` : ''}
+                  {logWord(event.kind)} × {event.count}
                 </span>
                 {canUndo(event, nowMs) && (
                   <button type="button" className="hit tiny" onClick={() => undo(event.id)}>
-                    復原
+                    {copy.undo}
                   </button>
                 )}
               </li>
@@ -273,47 +273,47 @@ export function Tonight({ sessionId }: { sessionId?: string }) {
           </ul>
           {session && link && (
             <label>
-              邀請連結
-              <input readOnly value={link} aria-label="邀請連結" />
+              {copy.linkLabel}
+              <input readOnly value={link} aria-label={copy.linkLabel} />
             </label>
           )}
           {session?.status === 'active' && session.guardian_accepted && session.share_location && (
             <div className="stack">
               <label>
-                最後位置
-                <input value={ping} onChange={(event) => setPing(event.target.value)} placeholder="港鐵 B 出口" />
+                {copy.pingLabel}
+                <input value={ping} onChange={(event) => setPing(event.target.value)} placeholder={copy.pingPlaceholder} />
               </label>
               <button type="button" className="hit" onClick={() => void sharePing()}>
-                分享最後位置
+                {copy.pingButton}
               </button>
-              <p className="quiet">只留下這一次，不累積路線。</p>
+              <p className="quiet">{copy.pingHint}</p>
             </div>
           )}
           {session && session.status !== 'home' && session.status !== 'cancelled' && (
             <div className="stack demo-clock">
-              <p className="quiet">演示時鐘。兩台電腦共用伺服器時間。</p>
+              <p className="quiet">{copy.clockHint}</p>
               <button type="button" className="hit secondary" onClick={() => void advance(15)}>
-                加十五分鐘
+                {copy.plusFifteen}
               </button>
               <button type="button" className="hit secondary" onClick={() => void jump()}>
-                快轉到超過回報時間
+                {copy.pastGrace}
               </button>
             </div>
           )}
           {session && session.status !== 'home' && session.status !== 'cancelled' && (
             <div className="stack">
               <label>
-                更換守護者
+                {copy.swapLabel}
                 <input value={nextGuardian} onChange={(event) => setNextGuardian(event.target.value)} />
               </label>
               <button type="button" className="hit secondary" onClick={() => void propose()}>
-                更換守護者
+                {copy.swapButton}
               </button>
               {session.pending_guardian_name && (
                 <>
-                  <p>要換成{session.pending_guardian_name}嗎？</p>
+                  <p>{confirmSwapLine(session.pending_guardian_name)}</p>
                   <button type="button" className="hit" onClick={() => void confirm()}>
-                    確認更換守護者
+                    {copy.confirmSwapButton}
                   </button>
                 </>
               )}
@@ -322,11 +322,11 @@ export function Tonight({ sessionId }: { sessionId?: string }) {
                 className="hit secondary"
                 onClick={() => {
                   void httpApi.cancel(session.id).then((result) => setSession(result.session)).catch((cause: unknown) => {
-                    setError(cause instanceof Error ? cause.message : '無法取消')
+                    setError(cause instanceof Error ? cause.message : copy.errCancel)
                   })
                 }}
               >
-                取消今晚
+                {copy.cancelTonight}
               </button>
             </div>
           )}

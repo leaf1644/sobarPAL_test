@@ -4,6 +4,7 @@ import { DEFAULT_GRACE_MINUTES } from '../src/domain/session'
 import { startApiServer } from '../src/server/api'
 import { fixedClock } from '../src/server/clock'
 import { createSessionStore } from '../src/server/sessionStore'
+import { copy } from '../src/copy'
 import { sessionInput, T0 } from './helpers'
 
 describe('part 1 tonight session', () => {
@@ -49,7 +50,7 @@ describe('part 1 tonight session', () => {
     expect(confirmed.status).toBe('planned')
     expect(confirmed.magic_token).not.toBe(session.magic_token)
     expect(store.getByToken(session.magic_token)).toBeNull()
-    expect(() => store.confirmGuardian(session.id)).toThrow(/請先確認更換/)
+    expect(() => store.confirmGuardian(session.id)).toThrow(copy.errConfirmRequired)
 
     store.cancelGuardianChange(store.proposeGuardian(session.id, 'Ada').id)
     expect(store.getSnapshot(session.id)?.guardian_name).toBe('Lin')

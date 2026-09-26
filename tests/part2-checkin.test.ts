@@ -3,6 +3,7 @@ import { join } from 'node:path'
 import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
+import { callLabel, copy, statusLabel } from '../src/copy'
 import { GuardianCard } from '../src/screens/GuardianMode'
 import { isGuardianAlert } from '../src/domain/alert'
 import { createLogEvent, loggedAtLeast } from '../src/domain/log'
@@ -71,8 +72,8 @@ describe('part 2 I am home and missed check-in', () => {
       }
       expect(guardian.view.status).toBe('missed')
       expect(guardian.view.drinker_name).toBe('Chen')
-      expect(guardian.view.check_in_status).toBe('錯過回報')
-      expect(guardian.view.call_label).toBe('打電話給Chen')
+      expect(guardian.view.check_in_status).toBe(statusLabel('missed'))
+      expect(guardian.view.call_label).toBe(callLabel('Chen'))
       expect(guardian.view.needs_check_in_followup).toBe(true)
       expect(guardian.view.last_ping?.label).toBe('Taxi rank')
       expect(JSON.stringify(guardian.view)).not.toContain('personal_limit_serves')
@@ -212,8 +213,9 @@ describe('part 2 I am home and missed check-in', () => {
         onAccept: () => undefined,
       }),
     )
-    expect(before).toContain('>接受<')
-    expect(before).toContain('錯過回報')
+    expect(before).toContain(`>${copy.accept}<`)
+    expect(before).toContain(statusLabel('missed'))
+    expect(before).not.toContain('人照看人')
     expect(before).not.toContain('Taxi rank')
 
     const accepted = store.acceptByToken(confirmed.magic_token)
@@ -228,9 +230,9 @@ describe('part 2 I am home and missed check-in', () => {
         onAccept: () => undefined,
       }),
     )
-    expect(after).not.toContain('>接受<')
+    expect(after).not.toContain(`>${copy.accept}<`)
     expect(after).toContain('Taxi rank')
-    expect(after).toContain('錯過回報')
+    expect(after).toContain(statusLabel('missed'))
   })
 
   it('does not miss a session the guardian never accepted', () => {

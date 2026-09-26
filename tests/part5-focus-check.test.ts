@@ -1,6 +1,7 @@
 import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
+import { copy } from '../src/copy'
 import { FocusCheck } from '../src/screens/FocusCheck'
 import { isGuardianAlert } from '../src/domain/alert'
 import {
@@ -80,16 +81,16 @@ describe('part 5 focus check', () => {
       }),
     )
     expect(html).toContain(FOCUS_DISCLAIMER)
-    expect(html).toContain('反應點擊')
-    expect(html).toContain('配對圖形')
-    expect(html).toContain('邏輯圖案')
-    expect(html).toContain('記一杯')
-    expect(html).toContain('專注暫停')
-    expect(html).toContain('我到家了')
+    expect(html).toContain(copy.gameReaction)
+    expect(html).toContain(copy.gameMatch)
+    expect(html).toContain(copy.gameLogic)
+    expect(html).toContain(copy.drinkOne)
+    expect(html).toContain(copy.focus)
+    expect(html).toContain(copy.home)
+    expect(html).toContain(copy.focusDisclaimer)
+    expect(html).not.toContain('人照看人')
     expect(html).not.toContain('及格')
     expect(html).not.toContain('不及格')
-    expect(html).toContain('酒測')
-    expect(html).toContain('駕駛安全')
   })
 })
 

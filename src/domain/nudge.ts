@@ -1,3 +1,4 @@
+import { copy } from '../copy'
 import type { NudgePolicy, SessionStatus, TonightSession } from './types'
 
 export const WATER_NUDGE_GAP_MS = 45 * 60 * 1000
@@ -60,8 +61,8 @@ export function evaluateSessionNudges(
 }
 
 export function nudgeCopy(kind: NudgeKind): string {
-  if (kind === 'water') return '該喝水了嗎？'
-  return '要回家了嗎？'
+  if (kind === 'water') return copy.nudgeWater
+  return copy.nudgeHeading
 }
 
 function clockFromPolicy(policy: NudgePolicy): NudgeClock {

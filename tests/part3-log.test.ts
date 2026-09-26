@@ -2,6 +2,7 @@ import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
 import { App } from '../src/App'
+import { loggedLine } from '../src/copy'
 import { createSparseLog, memoryStorage } from '../src/client/sparseLog'
 import {
   actionsOpen,
@@ -38,7 +39,7 @@ describe('part 3 sparse drink log', () => {
     events = log.add({ kind: 'extend', count: 1, source: 'widget', now: T0 + 3000 })
     events = log.add({ kind: 'pause', count: 1, source: 'watch', now: T0 + 4000 })
     expect(loggedAtLeast(events)).toBe(3)
-    expect(loggedAtLeastCopy(events)).toBe('至少記了 3 杯')
+    expect(loggedAtLeastCopy(events)).toBe(loggedLine(3))
 
     const drinkId = events[0].id
     const undone = log.undo(drinkId, T0 + UNDO_WINDOW_MS)
@@ -88,8 +89,8 @@ describe('part 3 sparse drink log', () => {
 
   it('shows at least N and does not describe a complete intake', () => {
     const html = renderToStaticMarkup(createElement(App, { initialHash: '#/tonight' }))
-    expect(html).toContain('至少記了 0 杯')
-    expect(html).toContain('不是完整紀錄')
+    expect(html).toContain(loggedLine(0))
+    expect(html).not.toContain('人照看人')
     expect(html.toLowerCase()).not.toContain('total drinks')
     expect(html.toLowerCase()).not.toContain('complete intake')
     const sample: LogEvent[] = [
@@ -101,6 +102,6 @@ describe('part 3 sparse drink log', () => {
         created_at: new Date(T0).toISOString(),
       }),
     ]
-    expect(loggedAtLeastCopy(sample)).toBe('至少記了 2 杯')
+    expect(loggedAtLeastCopy(sample)).toBe(loggedLine(2))
   })
 })

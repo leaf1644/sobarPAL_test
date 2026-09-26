@@ -5,6 +5,7 @@ import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
 import { App } from '../src/App'
+import { copy, loggedLine } from '../src/copy'
 import { memoryStorage, createSparseLog } from '../src/client/sparseLog'
 import { magicLinkFromPage, parseHash } from '../src/route'
 import { startApiServer } from '../src/server/api'
@@ -15,21 +16,21 @@ import { sessionInput, T0 } from './helpers'
 describe('part 0 scaffold', () => {
   it('renders the three modes and the tonight actions from the app shell', () => {
     const plan = renderToStaticMarkup(createElement(App))
-    expect(plan).toContain('規劃今晚')
-    expect(plan).toContain('今晚')
-    expect(plan).toContain('守護者模式')
-    expect(plan).toContain('記一杯')
-    expect(plan).toContain('專注暫停')
-    expect(plan).toContain('我到家了')
-    expect(plan).toContain('淺色')
+    expect(plan).toContain(copy.navPlan)
+    expect(plan).toContain(copy.navTonight)
+    expect(plan).toContain(copy.navGuardian)
+    expect(plan).toContain(copy.themeToLight)
+    expect(plan).toContain(copy.tagline)
+    expect(plan).not.toContain('人照看人')
 
     const tonight = renderToStaticMarkup(createElement(App, { initialHash: '#/tonight' }))
-    expect(tonight).toContain('>今晚<')
-    expect(tonight).toContain('記一杯')
-    expect(tonight).toContain('再記兩杯')
-    expect(tonight).toContain('專注暫停')
-    expect(tonight).toContain('我到家了')
-    expect(tonight).toContain('記喝水')
+    expect(tonight).toContain(`>${copy.navTonight}<`)
+    expect(tonight).toContain(copy.drinkOne)
+    expect(tonight).toContain(copy.drinkTwo)
+    expect(tonight).toContain(copy.focus)
+    expect(tonight).toContain(copy.home)
+    expect(tonight).toContain(copy.water)
+    expect(tonight).not.toContain('人照看人')
   })
 
   it('parses a guardian magic link for the second computer', () => {
@@ -51,7 +52,7 @@ describe('part 0 scaffold', () => {
     const log = createSparseLog(memoryStorage(), created.id)
     log.add({ kind: 'drink', count: 1, source: 'tap', now: T0 })
     expect(log.list()).toHaveLength(1)
-    expect(log.copy()).toBe('至少記了 1 杯')
+    expect(log.copy()).toBe(loggedLine(1))
     expect(JSON.stringify(store.getSnapshot(created.id))).not.toContain('"kind":"drink"')
   })
 

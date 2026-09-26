@@ -1,3 +1,4 @@
+import { loggedLine } from '../copy'
 import { DomainError } from './errors'
 import type { LogEvent, LogKind, LogSource } from './types'
 
@@ -48,7 +49,7 @@ export function loggedAtLeast(events: LogEvent[]): number {
 }
 
 export function loggedAtLeastCopy(events: LogEvent[]): string {
-  return `至少記了 ${loggedAtLeast(events)} 杯`
+  return loggedLine(loggedAtLeast(events))
 }
 
 export function canUndo(event: LogEvent, nowMs: number): boolean {

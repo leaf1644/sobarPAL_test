@@ -1,5 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { httpApi } from '../client/api'
+import { confirmSwapLine, copy, graceLine } from '../copy'
 import { DEFAULT_GRACE_MINUTES, checkInStatusLabel } from '../domain/session'
 import { medsForSurface } from '../domain/meds'
 import { magicLinkFromPage } from '../route'
@@ -57,7 +58,7 @@ export function PlanTonight() {
       const page = typeof window === 'undefined' ? 'http://localhost/' : window.location.href
       setLink(magicLinkFromPage(page, next.magic_token))
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : '無法建立今晚')
+      setError(cause instanceof Error ? cause.message : copy.errCreate)
     } finally {
       setBusy(false)
     }
@@ -70,7 +71,7 @@ export function PlanTonight() {
       const result = await httpApi.proposeGuardian(session.id, nextGuardian)
       setSession(result.session)
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : '無法準備更換')
+      setError(cause instanceof Error ? cause.message : copy.errSwap)
     }
   }
 
@@ -84,7 +85,7 @@ export function PlanTonight() {
       setLink(magicLinkFromPage(page, result.session.magic_token))
       setNextGuardian('')
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : '確認失敗')
+      setError(cause instanceof Error ? cause.message : copy.errConfirm)
     }
   }
 
@@ -96,19 +97,17 @@ export function PlanTonight() {
 
   return (
     <section className="card">
-      <p className="eyebrow">出門之前</p>
-      <h2>規劃今晚</h2>
-      <p className="lede">
-        設定守護者與預計到家時間。第二台電腦打開邀請連結才連得上。飲酒紀錄不會經過這條連結。
-      </p>
-      <p className="quiet">寬限 {DEFAULT_GRACE_MINUTES} 分鐘。超過這個時間還沒按我到家了，守護者才會看到錯過回報。</p>
+      <p className="eyebrow">{copy.planEyebrow}</p>
+      <h2>{copy.planTitle}</h2>
+      <p className="lede">{copy.planLede}</p>
+      <p className="quiet">{graceLine(DEFAULT_GRACE_MINUTES)}</p>
       <form onSubmit={onCreate} className="stack">
         <label>
-          你的名字
+          {copy.yourName}
           <input name="drinker_name" value={drinkerName} onChange={(event) => setDrinkerName(event.target.value)} required />
         </label>
         <label>
-          守護者
+          {copy.guardian}
           <input
             name="guardian_name"
             value={guardianName}
@@ -117,7 +116,7 @@ export function PlanTonight() {
           />
         </label>
         <label>
-          個人上限
+          {copy.limit}
           <input
             name="personal_limit_serves"
             type="number"
@@ -127,18 +126,19 @@ export function PlanTonight() {
             onChange={(event) => setLimit(Number(event.target.value))}
             required
           />
+          <span className="quiet">{copy.limitHint}</span>
         </label>
         <label>
-          主要飲品
+          {copy.drink}
           <select name="primary_drink_type" value={drinkType} onChange={(event) => setDrinkType(event.target.value)}>
-            <option value="beer">啤酒</option>
-            <option value="wine">葡萄酒</option>
-            <option value="spirits">烈酒</option>
-            <option value="other">其他</option>
+            <option value="beer">{copy.beer}</option>
+            <option value="wine">{copy.wine}</option>
+            <option value="spirits">{copy.spirits}</option>
+            <option value="other">{copy.other}</option>
           </select>
         </label>
         <label>
-          預計到家時間
+          {copy.homeTime}
           <input
             name="check_in_at"
             type="datetime-local"
@@ -154,16 +154,16 @@ export function PlanTonight() {
             checked={shareLocation}
             onChange={(event) => setShareLocation(event.target.checked)}
           />
-          守護者接受後，只分享最後一次位置，不記錄路線。
+          {copy.shareLocation}
         </label>
         <div className="meds">
-          <h3>藥物與酒精</h3>
+          <h3>{copy.medsTitle}</h3>
           <ul>
             {meds.warnings.map((line) => (
               <li key={line}>{line}</li>
             ))}
           </ul>
-          <h3>可以這樣說</h3>
+          <h3>{copy.refusalTitle}</h3>
           <ul>
             {meds.scripts.map((line) => (
               <li key={line}>{line}</li>
@@ -176,40 +176,40 @@ export function PlanTonight() {
               checked={medsConfirmed}
               onChange={(event) => setMedsConfirmed(event.target.checked)}
             />
-            我看過這些提醒
+            {copy.medsAck}
           </label>
         </div>
         <button type="submit" className="hit primary" disabled={busy}>
-          建立今晚
+          {copy.create}
         </button>
       </form>
       {error && <p className="error">{error}</p>}
       {session && (
         <div className="result">
           <p>
-            狀態：<strong data-testid="session-status">{checkInStatusLabel(session.status)}</strong>
+            {copy.statusPrefix}：<strong data-testid="session-status">{checkInStatusLabel(session.status)}</strong>
           </p>
-          <p className="quiet">把這條連結拿到第二台電腦打開。</p>
-          <input data-testid="magic-link" readOnly value={link} aria-label="邀請連結" />
+          <p className="quiet">{copy.linkHint}</p>
+          <input data-testid="magic-link" readOnly value={link} aria-label={copy.linkLabel} />
           <p>
-            <a href={`#/tonight/${session.id}`}>打開今晚</a>
+            <a href={`#/tonight/${session.id}`}>{copy.openTonight}</a>
           </p>
           <div className="stack">
             <label>
-              更換守護者
+              {copy.swapLabel}
               <input value={nextGuardian} onChange={(event) => setNextGuardian(event.target.value)} />
             </label>
-            <button type="button" className="hit" onClick={() => void propose()}>
-              更換守護者
+            <button type="button" className="hit secondary" onClick={() => void propose()}>
+              {copy.swapButton}
             </button>
             {session.pending_guardian_name && (
               <div className="confirm">
-                <p>要換成{session.pending_guardian_name}嗎？</p>
+                <p>{confirmSwapLine(session.pending_guardian_name)}</p>
                 <button type="button" className="hit" onClick={() => void confirm()}>
-                  確認更換守護者
+                  {copy.confirmSwapButton}
                 </button>
                 <button type="button" className="hit secondary" onClick={() => void cancelChange()}>
-                  取消更換
+                  {copy.cancelSwap}
                 </button>
               </div>
             )}

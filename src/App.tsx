@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { copy } from './copy'
 import { currentHash, parseHash } from './route'
 import { GuardianMode } from './screens/GuardianMode'
 import { PlanTonight } from './screens/PlanTonight'
@@ -38,19 +39,19 @@ export function App({ initialHash }: { initialHash?: string }) {
         className="theme-switch"
         onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
       >
-        {theme === 'dark' ? '淺色' : '深色'}
+        {theme === 'dark' ? copy.themeToLight : copy.themeToDark}
       </button>
       <header className="top">
         <div>
-          <p className="brand">清醒夥伴</p>
-          <p className="tagline">人照看人。</p>
+          <p className="brand">{copy.brand}</p>
+          <p className="tagline">{copy.tagline}</p>
         </div>
-        <nav className="modes" aria-label="畫面">
-          <a href="#/plan">規劃今晚</a>
-          <a href="#/tonight">今晚</a>
-          <a href="#/guardian">守護者模式</a>
+        <nav className="modes" aria-label={copy.navLabel}>
+          <a href="#/plan">{copy.navPlan}</a>
+          <a href="#/tonight">{copy.navTonight}</a>
+          <a href="#/guardian">{copy.navGuardian}</a>
         </nav>
-        <p className="legend">今晚可以記一杯、做專注暫停，或按我到家了。</p>
+        <p className="legend">{copy.legend}</p>
       </header>
       <main>
         {route.name === 'plan' && <PlanTonight />}
