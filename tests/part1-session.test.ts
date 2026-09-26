@@ -49,7 +49,7 @@ describe('part 1 tonight session', () => {
     expect(confirmed.status).toBe('planned')
     expect(confirmed.magic_token).not.toBe(session.magic_token)
     expect(store.getByToken(session.magic_token)).toBeNull()
-    expect(() => store.confirmGuardian(session.id)).toThrow(/confirmation required/)
+    expect(() => store.confirmGuardian(session.id)).toThrow(/請先確認更換/)
 
     store.cancelGuardianChange(store.proposeGuardian(session.id, 'Ada').id)
     expect(store.getSnapshot(session.id)?.guardian_name).toBe('Lin')

@@ -60,8 +60,8 @@ export function evaluateSessionNudges(
 }
 
 export function nudgeCopy(kind: NudgeKind): string {
-  if (kind === 'water') return 'Time for water?'
-  return 'heading home?'
+  if (kind === 'water') return '該喝水了嗎？'
+  return '要回家了嗎？'
 }
 
 function clockFromPolicy(policy: NudgePolicy): NudgeClock {

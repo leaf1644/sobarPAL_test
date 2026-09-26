@@ -1,7 +1,7 @@
 import type { TonightSession } from './types'
 
 export const FOCUS_ROUND_SECONDS = 30
-export const FOCUS_DISCLAIMER = 'A pause only — not a sobriety or driving-safety test.'
+export const FOCUS_DISCLAIMER = '只是暫停一下，不是酒測，也不是駕駛安全測試。'
 
 export const FOCUS_GAMES = ['reaction', 'match', 'logic'] as const
 export type FocusGame = (typeof FOCUS_GAMES)[number]

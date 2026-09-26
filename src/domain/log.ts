@@ -48,7 +48,7 @@ export function loggedAtLeast(events: LogEvent[]): number {
 }
 
 export function loggedAtLeastCopy(events: LogEvent[]): string {
-  return `Logged at least ${loggedAtLeast(events)}`
+  return `至少記了 ${loggedAtLeast(events)} 杯`
 }
 
 export function canUndo(event: LogEvent, nowMs: number): boolean {

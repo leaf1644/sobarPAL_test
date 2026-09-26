@@ -14,8 +14,8 @@ describe('part 4 session watch nudges', () => {
   it('caps water at 45 minutes, heading-home at one, and any nudge at 30 minutes', () => {
     const early = activeAt()
     expect(evaluateSessionNudges(early.session, T0)).toBe('water')
-    expect(nudgeCopy('water')).toBe('Time for water?')
-    expect(nudgeCopy('heading_home')).toBe('heading home?')
+    expect(nudgeCopy('water')).toBe('該喝水了嗎？')
+    expect(nudgeCopy('heading_home')).toBe('要回家了嗎？')
 
     early.store.noteNudge(early.session.id, 'water', T0)
     const noted = early.store.getSnapshot(early.session.id)!

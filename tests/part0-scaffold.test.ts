@@ -15,20 +15,21 @@ import { sessionInput, T0 } from './helpers'
 describe('part 0 scaffold', () => {
   it('renders the three modes and the tonight actions from the app shell', () => {
     const plan = renderToStaticMarkup(createElement(App))
-    expect(plan).toContain('Plan tonight')
-    expect(plan).toContain('Tonight')
-    expect(plan).toContain('Guardian mode')
-    expect(plan).toContain('+ Drink')
-    expect(plan).toContain('Focus Check')
-    expect(plan).toContain('I&#x27;m home')
+    expect(plan).toContain('規劃今晚')
+    expect(plan).toContain('今晚')
+    expect(plan).toContain('守護者模式')
+    expect(plan).toContain('記一杯')
+    expect(plan).toContain('專注暫停')
+    expect(plan).toContain('我到家了')
+    expect(plan).toContain('淺色')
 
     const tonight = renderToStaticMarkup(createElement(App, { initialHash: '#/tonight' }))
-    expect(tonight).toContain('>Tonight<')
-    expect(tonight).toContain('+ Drink')
-    expect(tonight).toContain('+2')
-    expect(tonight).toContain('Focus Check')
-    expect(tonight).toContain('I&#x27;m home')
-    expect(tonight).toContain('+ Water')
+    expect(tonight).toContain('>今晚<')
+    expect(tonight).toContain('記一杯')
+    expect(tonight).toContain('再記兩杯')
+    expect(tonight).toContain('專注暫停')
+    expect(tonight).toContain('我到家了')
+    expect(tonight).toContain('記喝水')
   })
 
   it('parses a guardian magic link for the second computer', () => {
@@ -50,7 +51,7 @@ describe('part 0 scaffold', () => {
     const log = createSparseLog(memoryStorage(), created.id)
     log.add({ kind: 'drink', count: 1, source: 'tap', now: T0 })
     expect(log.list()).toHaveLength(1)
-    expect(log.copy()).toBe('Logged at least 1')
+    expect(log.copy()).toBe('至少記了 1 杯')
     expect(JSON.stringify(store.getSnapshot(created.id))).not.toContain('"kind":"drink"')
   })
 

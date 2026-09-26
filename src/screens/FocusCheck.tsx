@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { shapeLabel } from '../copy'
 import {
   FOCUS_DISCLAIMER,
   FOCUS_ROUND_SECONDS,
@@ -36,12 +37,12 @@ export function FocusCheck({
   }
 
   return (
-    <section className="card focus-card" aria-label="Focus Check">
-      <p className="eyebrow">Focus Check</p>
-      <h2>Take a moment.</h2>
+    <section className="card focus-card" aria-label="專注暫停">
+      <p className="eyebrow">專注暫停</p>
+      <h2>停一下。</h2>
       <p className="disclaimer">{FOCUS_DISCLAIMER}</p>
-      <p className="quiet">About {FOCUS_ROUND_SECONDS} seconds. Optional. There is no score.</p>
-      <div className="game-picks" role="group" aria-label="Mini-games">
+      <p className="quiet">大約 {FOCUS_ROUND_SECONDS} 秒。可以不做。沒有分數。</p>
+      <div className="game-picks" role="group" aria-label="小遊戲">
         {(['reaction', 'match', 'logic'] as const).map((item) => (
           <button
             key={item}
@@ -53,15 +54,15 @@ export function FocusCheck({
               setDone(false)
             }}
           >
-            {item === 'reaction' ? 'Reaction tap' : item === 'match' ? 'Focus match' : 'Logic pattern'}
+            {item === 'reaction' ? '反應點擊' : item === 'match' ? '配對圖形' : '邏輯圖案'}
           </button>
         ))}
       </div>
       {done ? (
         <div className="pause-done">
-          <p>Pause complete.</p>
+          <p>暫停完成。</p>
           <button type="button" className="hit" onClick={() => onLeave(completeFocusRound({ game, correct: true }))}>
-            Back to tonight
+            回到今晚
           </button>
         </div>
       ) : game === 'reaction' ? (
@@ -89,16 +90,16 @@ function ReactionGame({ seed, onDone }: { seed: number; onDone: () => void }) {
 
   return (
     <div className="game">
-      <p>Respond when the target appears.</p>
+      <p>目標出現時再按。</p>
       {!started && (
         <button type="button" className="hit" onClick={() => setStarted(true)}>
-          Start check
+          開始
         </button>
       )}
-      {started && !visible && <p className="quiet">Hold on — the target is not there yet.</p>}
+      {started && !visible && <p className="quiet">先等一下，目標還沒出現。</p>}
       {visible && (
         <button type="button" className="hit target" onClick={onDone}>
-          Tap
+          點這裡
         </button>
       )}
     </div>
@@ -109,7 +110,7 @@ function MatchGame({ seed, onPick }: { seed: number; onPick: () => void }) {
   const round = matchRound(seed)
   return (
     <div className="game">
-      <p>Find a match. Ignore the other shapes.</p>
+      <p>找出一樣的圖形。</p>
       <Shape name={round.sample} />
       <div className="shape-row">
         {round.options.map((option, index) => (
@@ -126,7 +127,7 @@ function LogicGame({ seed, onPick }: { seed: number; onPick: () => void }) {
   const round = logicRound(seed)
   return (
     <div className="game">
-      <p>Choose the next shape.</p>
+      <p>選出下一個圖形。</p>
       <div className="shape-row">
         {round.sequence.map((shape, index) => (
           <Shape key={`${shape}-${index}`} name={shape} />
@@ -145,7 +146,7 @@ function LogicGame({ seed, onPick }: { seed: number; onPick: () => void }) {
 }
 
 function Shape({ name }: { name: string }) {
-  return <span className={`shape ${name}`}>{name}</span>
+  return <span className={`shape ${name}`}>{shapeLabel(name)}</span>
 }
 
 export function NightActions({
@@ -164,22 +165,22 @@ export function NightActions({
   return (
     <div className="night-actions">
       <button type="button" className="hit drink" onClick={onDrink}>
-        + Drink
+        記一杯
       </button>
       <button type="button" className="hit drink secondary" onClick={onDrinkBatch}>
-        +2
+        再記兩杯
       </button>
       {focusCurrent ? (
         <button type="button" className="hit focus on" disabled>
-          Focus Check
+          專注暫停
         </button>
       ) : (
         <button type="button" className="hit focus" onClick={onFocus}>
-          Focus Check
+          專注暫停
         </button>
       )}
       <button type="button" className="hit home" onClick={onHome}>
-        I'm home
+        我到家了
       </button>
     </div>
   )

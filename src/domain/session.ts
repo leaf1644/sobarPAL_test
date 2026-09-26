@@ -71,7 +71,7 @@ export function proposeGuardian(session: TonightSession, guardianName: string): 
 
 export function confirmGuardian(session: TonightSession, newToken: string): TonightSession {
   assertOpen(session)
-  if (!session.pending_guardian_name) throw new DomainError('confirmation required')
+  if (!session.pending_guardian_name) throw new DomainError('請先確認更換')
   const missed = session.status === 'missed'
   return {
     ...session,
@@ -198,15 +198,15 @@ export function noteNudge(session: TonightSession, kind: NudgeKind, nowMs: numbe
 export function checkInStatusLabel(status: SessionStatus): string {
   switch (status) {
     case 'planned':
-      return 'Planned'
+      return '已規劃'
     case 'active':
-      return 'Still out'
+      return '還在外面'
     case 'home':
-      return 'Home'
+      return '已到家'
     case 'missed':
-      return 'Missed check-in'
+      return '錯過回報'
     case 'cancelled':
-      return 'Cancelled'
+      return '已取消'
   }
 }
 
@@ -217,7 +217,7 @@ export function toGuardianView(session: TonightSession): GuardianView {
     guardian_accepted: session.guardian_accepted,
     check_in_status: checkInStatusLabel(session.status),
     last_ping: pingVisible(session) ? session.last_ping : null,
-    call_label: `Call ${session.drinker_name}`,
+    call_label: `打電話給${session.drinker_name}`,
     needs_check_in_followup: session.status === 'missed',
     last_guardian_reminder_at: session.last_guardian_reminder_at,
   }

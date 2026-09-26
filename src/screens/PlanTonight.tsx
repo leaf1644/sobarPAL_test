@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { httpApi } from '../client/api'
-import { DEFAULT_GRACE_MINUTES } from '../domain/session'
+import { DEFAULT_GRACE_MINUTES, checkInStatusLabel } from '../domain/session'
 import { medsForSurface } from '../domain/meds'
 import { magicLinkFromPage } from '../route'
 import type { TonightSession } from '../domain/types'
@@ -57,7 +57,7 @@ export function PlanTonight() {
       const page = typeof window === 'undefined' ? 'http://localhost/' : window.location.href
       setLink(magicLinkFromPage(page, next.magic_token))
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Could not create the session')
+      setError(cause instanceof Error ? cause.message : '無法建立今晚')
     } finally {
       setBusy(false)
     }
@@ -70,7 +70,7 @@ export function PlanTonight() {
       const result = await httpApi.proposeGuardian(session.id, nextGuardian)
       setSession(result.session)
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Could not stage the change')
+      setError(cause instanceof Error ? cause.message : '無法準備更換')
     }
   }
 
@@ -84,7 +84,7 @@ export function PlanTonight() {
       setLink(magicLinkFromPage(page, result.session.magic_token))
       setNextGuardian('')
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Confirmation failed')
+      setError(cause instanceof Error ? cause.message : '確認失敗')
     }
   }
 
@@ -96,19 +96,19 @@ export function PlanTonight() {
 
   return (
     <section className="card">
-      <p className="eyebrow">Before you go out</p>
-      <h2>Plan tonight</h2>
+      <p className="eyebrow">出門之前</p>
+      <h2>規劃今晚</h2>
       <p className="lede">
-        設定守護者與預計到家時間。第二台電腦打開 magic link 才連得上。飲酒紀錄不會經過這條連結。
+        設定守護者與預計到家時間。第二台電腦打開邀請連結才連得上。飲酒紀錄不會經過這條連結。
       </p>
-      <p className="quiet">Grace {DEFAULT_GRACE_MINUTES} minutes. 寬限內還沒按 I'm home，守護者才會看到錯過回報。</p>
+      <p className="quiet">寬限 {DEFAULT_GRACE_MINUTES} 分鐘。超過這個時間還沒按我到家了，守護者才會看到錯過回報。</p>
       <form onSubmit={onCreate} className="stack">
         <label>
-          Your name
+          你的名字
           <input name="drinker_name" value={drinkerName} onChange={(event) => setDrinkerName(event.target.value)} required />
         </label>
         <label>
-          Guardian
+          守護者
           <input
             name="guardian_name"
             value={guardianName}
@@ -117,7 +117,7 @@ export function PlanTonight() {
           />
         </label>
         <label>
-          Personal limit
+          個人上限
           <input
             name="personal_limit_serves"
             type="number"
@@ -129,16 +129,16 @@ export function PlanTonight() {
           />
         </label>
         <label>
-          Primary drink
+          主要飲品
           <select name="primary_drink_type" value={drinkType} onChange={(event) => setDrinkType(event.target.value)}>
-            <option value="beer">beer</option>
-            <option value="wine">wine</option>
-            <option value="spirits">spirits</option>
-            <option value="other">other</option>
+            <option value="beer">啤酒</option>
+            <option value="wine">葡萄酒</option>
+            <option value="spirits">烈酒</option>
+            <option value="other">其他</option>
           </select>
         </label>
         <label>
-          I'm-home time
+          預計到家時間
           <input
             name="check_in_at"
             type="datetime-local"
@@ -180,36 +180,36 @@ export function PlanTonight() {
           </label>
         </div>
         <button type="submit" className="hit primary" disabled={busy}>
-          Create tonight
+          建立今晚
         </button>
       </form>
       {error && <p className="error">{error}</p>}
       {session && (
         <div className="result">
           <p>
-            Status: <strong data-testid="session-status">{session.status}</strong>
+            狀態：<strong data-testid="session-status">{checkInStatusLabel(session.status)}</strong>
           </p>
           <p className="quiet">把這條連結拿到第二台電腦打開。</p>
-          <input data-testid="magic-link" readOnly value={link} aria-label="Magic link" />
+          <input data-testid="magic-link" readOnly value={link} aria-label="邀請連結" />
           <p>
-            <a href={`#/tonight/${session.id}`}>Open tonight</a>
+            <a href={`#/tonight/${session.id}`}>打開今晚</a>
           </p>
           <div className="stack">
             <label>
-              Replace Guardian
+              更換守護者
               <input value={nextGuardian} onChange={(event) => setNextGuardian(event.target.value)} />
             </label>
             <button type="button" className="hit" onClick={() => void propose()}>
-              Replace Guardian
+              更換守護者
             </button>
             {session.pending_guardian_name && (
               <div className="confirm">
-                <p>Confirm change to {session.pending_guardian_name}?</p>
+                <p>要換成{session.pending_guardian_name}嗎？</p>
                 <button type="button" className="hit" onClick={() => void confirm()}>
-                  Confirm guardian change
+                  確認更換守護者
                 </button>
                 <button type="button" className="hit secondary" onClick={() => void cancelChange()}>
-                  Cancel change
+                  取消更換
                 </button>
               </div>
             )}

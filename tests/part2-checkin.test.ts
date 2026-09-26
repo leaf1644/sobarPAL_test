@@ -71,8 +71,8 @@ describe('part 2 I am home and missed check-in', () => {
       }
       expect(guardian.view.status).toBe('missed')
       expect(guardian.view.drinker_name).toBe('Chen')
-      expect(guardian.view.check_in_status).toBe('Missed check-in')
-      expect(guardian.view.call_label).toBe('Call Chen')
+      expect(guardian.view.check_in_status).toBe('錯過回報')
+      expect(guardian.view.call_label).toBe('打電話給Chen')
       expect(guardian.view.needs_check_in_followup).toBe(true)
       expect(guardian.view.last_ping?.label).toBe('Taxi rank')
       expect(JSON.stringify(guardian.view)).not.toContain('personal_limit_serves')
@@ -212,8 +212,8 @@ describe('part 2 I am home and missed check-in', () => {
         onAccept: () => undefined,
       }),
     )
-    expect(before).toContain('>Accept<')
-    expect(before).toContain('missed')
+    expect(before).toContain('>接受<')
+    expect(before).toContain('錯過回報')
     expect(before).not.toContain('Taxi rank')
 
     const accepted = store.acceptByToken(confirmed.magic_token)
@@ -228,9 +228,9 @@ describe('part 2 I am home and missed check-in', () => {
         onAccept: () => undefined,
       }),
     )
-    expect(after).not.toContain('>Accept<')
+    expect(after).not.toContain('>接受<')
     expect(after).toContain('Taxi rank')
-    expect(after).toContain('missed')
+    expect(after).toContain('錯過回報')
   })
 
   it('does not miss a session the guardian never accepted', () => {
