@@ -102,19 +102,19 @@ describe('part 4 session watch nudges', () => {
     expect(isGuardianAlert(session, T0)).toBe(false)
   })
 
-  it('asks heading home once on a two-hour night and on 15-minute jumps', () => {
-    const twoHours = 2 * 60 * 60 * 1000
-    for (const step of [60_000, 15 * 60 * 1000]) {
-      const seen = collectNudges(twoHours, step)
-      expect(seen.filter((item) => item.kind === 'heading_home')).toHaveLength(1)
-      const waters = seen.filter((item) => item.kind === 'water')
-      for (let index = 1; index < seen.length; index += 1) {
-        expect(seen[index].at - seen[index - 1].at).toBeGreaterThanOrEqual(NUDGE_MIN_GAP_MS)
-      }
-      for (let index = 1; index < waters.length; index += 1) {
-        expect(waters[index].at - waters[index - 1].at).toBeGreaterThanOrEqual(WATER_NUDGE_GAP_MS)
-      }
-    }
+  it('on a default two-hour night, auto-note asks heading home once and waters only at 0 and 45 minutes', () => {
+    const seen = collectNudges(2 * 60 * 60 * 1000, 60_000)
+    expect(offsets(seen, 'water')).toEqual([0, 45 * 60 * 1000])
+    expect(seen.filter((item) => item.kind === 'heading_home')).toHaveLength(1)
+    expectGaps(seen)
+  })
+
+  it('still asks heading home once when 15-minute jumps skip the ten-minute window', () => {
+    const seen = collectNudges(2 * 60 * 60 * 1000, 15 * 60 * 1000)
+    expect(offsets(seen, 'water')).toEqual([0, 45 * 60 * 1000])
+    expect(seen.filter((item) => item.kind === 'heading_home')).toHaveLength(1)
+    expect(seen.some((item) => item.kind === 'heading_home' && item.at >= T0 + 2 * 60 * 60 * 1000 - 10 * 60 * 1000)).toBe(true)
+    expectGaps(seen)
   })
 
   it('does not call a model while deciding a nudge', async () => {
@@ -124,6 +124,20 @@ describe('part 4 session watch nudges', () => {
     expect(emptyNudgePolicy().dismissed_for_tonight).toBe(false)
   })
 })
+
+function offsets(seen: { at: number; kind: string }[], kind: string) {
+  return seen.filter((item) => item.kind === kind).map((item) => item.at - T0)
+}
+
+function expectGaps(seen: { at: number; kind: string }[]) {
+  const waters = seen.filter((item) => item.kind === 'water')
+  for (let index = 1; index < seen.length; index += 1) {
+    expect(seen[index].at - seen[index - 1].at).toBeGreaterThanOrEqual(NUDGE_MIN_GAP_MS)
+  }
+  for (let index = 1; index < waters.length; index += 1) {
+    expect(waters[index].at - waters[index - 1].at).toBeGreaterThanOrEqual(WATER_NUDGE_GAP_MS)
+  }
+}
 
 function collectNudges(horizonMs: number, stepMs: number) {
   const store = createSessionStore({ clock: fixedClock(T0) })

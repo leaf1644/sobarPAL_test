@@ -50,7 +50,7 @@ npm test
 npm run dev
 ```
 
-`npm test` 會跑 `tests/part0` 到 `tests/part6`，共 29 個單元測試。測試直接呼叫畫面上用的同一套時段、警報、紀錄、提醒、Focus Check 和服藥確認函式，也會真的啟動那個薄後端，用第二個 HTTP 客戶端讀 magic link。
+`npm test` 會跑 `tests/part0` 到 `tests/part6`，共 31 個單元測試。測試直接呼叫畫面上用的同一套時段、警報、紀錄、提醒、Focus Check 和服藥確認函式，也會真的啟動那個薄後端，用第二個 HTTP 客戶端讀 magic link。
 
 ## 這次沒有做
 

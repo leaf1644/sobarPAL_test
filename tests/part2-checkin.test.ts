@@ -113,6 +113,55 @@ describe('part 2 I am home and missed check-in', () => {
     expect(store.getSnapshot(session.id)?.needs_ok_prompt).toBe(true)
   })
 
+  it('shows the same miss on the replacement magic link', async () => {
+    const store = createSessionStore({ clock: fixedClock(T0) })
+    const server = await startApiServer(store)
+    try {
+      const created = await postJson(`${server.url}/api/sessions`, sessionInput())
+      const id = created.session.id as string
+      const oldToken = created.session.magic_token as string
+      await postJson(`${server.url}/api/guardian/${oldToken}/accept`, {})
+      await postJson(`${server.url}/api/demo/advance`, { minutes: 191 })
+
+      const missed = (await (await fetch(`${server.url}/api/sessions/${id}`)).json()) as {
+        session: { status: string; needs_ok_prompt: boolean }
+      }
+      expect(missed.session.status).toBe('missed')
+      expect(missed.session.needs_ok_prompt).toBe(true)
+
+      await postJson(`${server.url}/api/sessions/${id}/guardian/propose`, { guardian_name: 'Lin' })
+      const confirmed = await postJson(`${server.url}/api/sessions/${id}/guardian/confirm`, {})
+      const newToken = confirmed.session.magic_token as string
+      expect(confirmed.session.status).toBe('missed')
+      expect(confirmed.session.needs_ok_prompt).toBe(true)
+      expect(newToken).not.toBe(oldToken)
+      expect((await fetch(`${server.url}/api/guardian/${oldToken}`)).status).toBe(404)
+
+      const opened = (await (await fetch(`${server.url}/api/guardian/${newToken}`)).json()) as {
+        view: { status: string; needs_check_in_followup: boolean; drinker_name: string }
+      }
+      expect(opened.view.status).toBe('missed')
+      expect(opened.view.needs_check_in_followup).toBe(true)
+      expect(opened.view.drinker_name).toBe('Chen')
+
+      const accepted = await fetch(`${server.url}/api/guardian/${newToken}/accept`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: '{}',
+      })
+      const acceptedBody = (await accepted.json()) as { view: { status: string } }
+      expect(accepted.status).toBe(200)
+      expect(acceptedBody.view.status).toBe('missed')
+      const drinker = (await (await fetch(`${server.url}/api/sessions/${id}`)).json()) as {
+        session: { status: string; needs_ok_prompt: boolean }
+      }
+      expect(drinker.session.status).toBe('missed')
+      expect(drinker.session.needs_ok_prompt).toBe(true)
+    } finally {
+      await server.close()
+    }
+  })
+
   it('keeps the missed check-in when the guardian is replaced', () => {
     const store = createSessionStore({ clock: fixedClock(T0) })
     const session = store.create(sessionInput(), T0)
