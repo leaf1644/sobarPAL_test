@@ -34,7 +34,7 @@ Guardian alert := active AND now > check_in_at + grace AND NOT home
 
 0. **骨架。** Vite + React + TypeScript。三個畫面：Plan tonight、Tonight、Guardian mode。薄後端跟網頁同一個行程，資料寫在 `data/sessions.json`。開發伺服器每 5 秒跑一次 Watchdog，讀取時段時也會跑。
 1. **今晚時段。** 可填個人上限、到家時間、酒類、是否分享最後位置、守護者名字。寬限預設 10 分鐘。狀態有 planned、active、home、missed、cancelled。更換守護者要先按 Replace Guardian，再按 Confirm guardian change，舊連結會失效。
-2. **I'm home 與錯過回報。** I'm home 會結束時段並停止分享。錯過之後飲酒者看到常駐的「are you OK?」。守護者看到名字、回報狀態、最後一次 ping 和 Call。第一次通知之後，再提醒最多每 20 分鐘一次。若這時才更換守護者，時段維持 missed，「are you OK?」不會消失；舊連結失效，新的 magic link 仍然看得到這次錯過。新的守護者接受之後，狀態也不會被改回 planned。
+2. **I'm home 與錯過回報。** I'm home 會結束時段並停止分享。錯過之後飲酒者看到常駐的「are you OK?」。守護者看到名字、回報狀態、最後一次 ping 和 Call。第一次通知之後，再提醒最多每 20 分鐘一次。若這時才更換守護者，時段維持 missed，「are you OK?」不會消失；舊連結失效，新的 magic link 仍然看得到這次錯過。新的守護者接受之後，狀態也不會被改回 planned。錯過後的新連結會顯示 Accept；按下之後才看得到最後一次位置。
 3. **一鍵記錄。** + Drink、+2、+ Water。30 秒內可以 Undo。紀錄種類可以是 drink、water、pause、home、extend；來源可以是 tap、batch、widget、watch。畫面上只會產生 tap 和 batch。widget 和 watch 只留在資料模型，介面留到第 7 項。
 4. **SessionWatch。** 頁面上的規則只看預計到家時間、時段狀態和提醒政策。喝水提醒最多每 45 分鐘一次，而且會把到家前那 30 分鐘空出來，所以「heading home?」在預設的兩小時行程裡問得到一次，15 分鐘快轉跳過那 10 分鐘窗口時也會補問一次。任何兩次提醒至少間隔 30 分鐘。可以 Dismiss for tonight。略過不等於失敗。飲酒中沒有呼叫聊天模型。
 5. **Focus Check。** 反應點擊、配對、邏輯圖形，大約 30 秒，沒有分數，也沒有及格或不及格。文案寫明它只是暫停，不是酒測或駕駛安全測試。玩的時候 I'm home 仍然按得了。結果不會送到守護者，也沒有後端路由可收這個結果。
@@ -50,7 +50,7 @@ npm test
 npm run dev
 ```
 
-`npm test` 會跑 `tests/part0` 到 `tests/part6`，共 31 個單元測試。測試直接呼叫畫面上用的同一套時段、警報、紀錄、提醒、Focus Check 和服藥確認函式，也會真的啟動那個薄後端，用第二個 HTTP 客戶端讀 magic link。
+`npm test` 會跑 `tests/part0` 到 `tests/part6`，共 32 個單元測試。測試直接呼叫畫面上用的同一套時段、警報、紀錄、提醒、Focus Check 和服藥確認函式，也會真的啟動那個薄後端，用第二個 HTTP 客戶端讀 magic link。
 
 ## 這次沒有做
 

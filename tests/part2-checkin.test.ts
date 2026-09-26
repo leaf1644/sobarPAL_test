@@ -1,6 +1,9 @@
 import { readdirSync, readFileSync, statSync } from 'node:fs'
 import { join } from 'node:path'
+import { createElement } from 'react'
+import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
+import { GuardianCard } from '../src/screens/GuardianMode'
 import { isGuardianAlert } from '../src/domain/alert'
 import { createLogEvent, loggedAtLeast } from '../src/domain/log'
 import { RETENTION_MS } from '../src/domain/retention'
@@ -190,6 +193,44 @@ describe('part 2 I am home and missed check-in', () => {
     const afterAccept = store.guardianView(confirmed.magic_token)
     expect(afterAccept.status).toBe('missed')
     expect(afterAccept.last_ping?.label).toBe('Taxi rank')
+  })
+
+  it('renders Accept on a missed replacement link until the new guardian attaches', () => {
+    const store = createSessionStore({ clock: fixedClock(T0) })
+    const session = store.create(sessionInput(), T0)
+    store.acceptByToken(session.magic_token)
+    store.recordPing(session.id, 'Taxi rank', T0)
+    store.watchdogTick(PAST_GRACE)
+    store.proposeGuardian(session.id, 'Lin')
+    const confirmed = store.confirmGuardian(session.id)
+    const invite = store.guardianView(confirmed.magic_token)
+    const before = renderToStaticMarkup(
+      createElement(GuardianCard, {
+        view: invite,
+        calling: false,
+        onCall: () => undefined,
+        onAccept: () => undefined,
+      }),
+    )
+    expect(before).toContain('>Accept<')
+    expect(before).toContain('missed')
+    expect(before).not.toContain('Taxi rank')
+
+    const accepted = store.acceptByToken(confirmed.magic_token)
+    expect(accepted.status).toBe('missed')
+    expect(accepted.needs_ok_prompt).toBe(true)
+    const attached = store.guardianView(confirmed.magic_token)
+    const after = renderToStaticMarkup(
+      createElement(GuardianCard, {
+        view: attached,
+        calling: false,
+        onCall: () => undefined,
+        onAccept: () => undefined,
+      }),
+    )
+    expect(after).not.toContain('>Accept<')
+    expect(after).toContain('Taxi rank')
+    expect(after).toContain('missed')
   })
 
   it('does not miss a session the guardian never accepted', () => {

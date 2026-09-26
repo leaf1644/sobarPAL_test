@@ -70,6 +70,7 @@ export type LogEvent = {
 export type GuardianView = {
   drinker_name: string
   status: SessionStatus
+  guardian_accepted: boolean
   check_in_status: string
   last_ping: Ping | null
   call_label: string

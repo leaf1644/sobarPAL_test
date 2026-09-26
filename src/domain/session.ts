@@ -214,12 +214,18 @@ export function toGuardianView(session: TonightSession): GuardianView {
   return {
     drinker_name: session.drinker_name,
     status: session.status,
+    guardian_accepted: session.guardian_accepted,
     check_in_status: checkInStatusLabel(session.status),
     last_ping: pingVisible(session) ? session.last_ping : null,
     call_label: `Call ${session.drinker_name}`,
     needs_check_in_followup: session.status === 'missed',
     last_guardian_reminder_at: session.last_guardian_reminder_at,
   }
+}
+
+/** The new guardian can attach while the invite is still open, including after a miss. */
+export function showGuardianAccept(view: Pick<GuardianView, 'status' | 'guardian_accepted'>): boolean {
+  return !view.guardian_accepted && (view.status === 'planned' || view.status === 'missed')
 }
 
 export function pingVisible(session: TonightSession): boolean {
