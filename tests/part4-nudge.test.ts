@@ -103,14 +103,14 @@ describe('part 4 session watch nudges', () => {
   })
 
   it('on a default two-hour night, auto-note asks heading home once and waters only at 0 and 45 minutes', () => {
-    const seen = collectNudges(2 * 60 * 60 * 1000, 60_000)
+    const seen = collectNudges(1)
     expect(offsets(seen, 'water')).toEqual([0, 45 * 60 * 1000])
     expect(seen.filter((item) => item.kind === 'heading_home')).toHaveLength(1)
     expectGaps(seen)
   })
 
   it('still asks heading home once when 15-minute jumps skip the ten-minute window', () => {
-    const seen = collectNudges(2 * 60 * 60 * 1000, 15 * 60 * 1000)
+    const seen = collectNudges(15)
     expect(offsets(seen, 'water')).toEqual([0, 45 * 60 * 1000])
     expect(seen.filter((item) => item.kind === 'heading_home')).toHaveLength(1)
     expect(seen.some((item) => item.kind === 'heading_home' && item.at >= T0 + 2 * 60 * 60 * 1000 - 10 * 60 * 1000)).toBe(true)
@@ -139,7 +139,9 @@ function expectGaps(seen: { at: number; kind: string }[]) {
   }
 }
 
-function collectNudges(horizonMs: number, stepMs: number) {
+/** Same step Tonight takes: evaluate at the server clock, then noteNudge() with no override. */
+function collectNudges(stepMinutes: number) {
+  const horizonMs = 2 * 60 * 60 * 1000
   const store = createSessionStore({ clock: fixedClock(T0) })
   const created = store.create(
     sessionInput({ check_in_at: new Date(T0 + horizonMs).toISOString() }),
@@ -147,13 +149,18 @@ function collectNudges(horizonMs: number, stepMs: number) {
   )
   store.acceptByToken(created.magic_token)
   const seen: { at: number; kind: string }[] = []
-  for (let now = T0; now <= T0 + horizonMs + 15 * 60 * 1000; now += stepMs) {
+  const end = T0 + horizonMs + 15 * 60 * 1000
+  for (let guard = 0; guard < 500; guard += 1) {
     const snap = store.getSnapshot(created.id)
-    if (!snap) break
+    if (!snap || snap.status !== 'active') break
+    const now = store.now()
     const kind = evaluateSessionNudges(snap, now)
-    if (!kind) continue
-    seen.push({ at: now, kind })
-    store.noteNudge(created.id, kind, now)
+    if (kind) {
+      seen.push({ at: now, kind })
+      store.noteNudge(created.id, kind)
+    }
+    if (now >= end) break
+    store.advance(stepMinutes)
   }
   return seen
 }
