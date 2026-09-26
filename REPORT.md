@@ -1,0 +1,57 @@
+# SoberPal 網頁 demo 報告
+
+這是給兩台電腦課堂演示用的 SoberPal 原型。它是一個同伴式飲酒安全網頁，不是一杯一杯的監視器。人可以只開兩次：出門前規劃，之後按 I'm home。沒按，守護者才會看到錯過回報。
+
+## 兩台電腦怎麼連
+
+飲酒者和守護者各開一個瀏覽器，連到同一台 Vite 開發伺服器。連線不是靠同一個 Wi-Fi 自動配對。
+
+1. 飲酒者在 Plan tonight 填名字、個人上限、酒類、預計到家時間，並標記守護者，然後按 Create tonight。
+2. 畫面上出現 magic link，例如 `http://192.168.x.x:5173/#/g/tok_…`。
+3. 第二台電腦打開這條連結，按 Accept。時段從 `planned` 變成 `active`。兩邊每隔幾秒讀同一筆後端資料，所以狀態會變成一樣。
+4. 飲酒者之後按 I'm home，狀態變成 `home`，位置分享停止。
+5. 若過了預計到家時間再加 10 分鐘寬限仍未到家，後端的 Watchdog 會把時段標成 `missed`。飲酒者關掉網頁也一樣，因為判斷在伺服器上，不在那台瀏覽器裡。守護者頁面會看到錯過回報、最後一次位置（如果有分享）和 Call。
+
+演示時請用終端機印出的 Network 網址開頁，不要只用 `localhost`，否則第二台電腦打不開連結。第一台電腦產生的 magic link 會沿用它自己的網址。
+
+Tonight 頁有演示時鐘：「+15 min」和「Past check-in grace」。兩台電腦共用伺服器時間，所以不必在台上真的等到深夜。這不是簡訊或推播；守護者要開著那個頁面才看得到狀態。真正的 FCM／APNs 留在第 7 項。
+
+## 安全規則（程式裡分開計算）
+
+錯過回報是唯一會自動當成危險的訊號：
+
+```
+Guardian alert := active AND now > check_in_at + grace AND NOT home
+```
+
+杯數、Focus Check、略過提醒都不會觸發它。杯數只顯示成 `Logged at least N`（至少記了 N 杯），而且可以復原的那幾杯不算。個人上限不會鎖住任何按鈕。
+
+位置只在守護者已接受、而且時段是進行中或已錯過回報時，以「最後一次 ping」出現。沒有路線、沒有瀏覽器定位、沒有拍照。按 I'm home 或取消時段後就不再顯示。
+
+伺服器上的時段資料在建立滿 7 天後刪除。飲酒紀錄放在飲酒者瀏覽器的 localStorage，不會送到守護者那一側。
+
+## 第 0 到第 6 項做了什麼
+
+0. **骨架。** Vite + React + TypeScript。三個畫面：Plan tonight、Tonight、Guardian mode。薄後端跟網頁同一個行程，資料寫在 `data/sessions.json`。開發伺服器每 5 秒跑一次 Watchdog，讀取時段時也會跑。
+1. **今晚時段。** 可填個人上限、到家時間、酒類、是否分享最後位置、守護者名字。寬限預設 10 分鐘。狀態有 planned、active、home、missed、cancelled。更換守護者要先按 Replace Guardian，再按 Confirm guardian change，舊連結會失效。
+2. **I'm home 與錯過回報。** I'm home 會結束時段並停止分享。錯過之後飲酒者看到常駐的「are you OK?」。守護者看到名字、回報狀態、最後一次 ping 和 Call。第一次通知之後，再提醒最多每 20 分鐘一次。
+3. **一鍵記錄。** + Drink、+2、+ Water。30 秒內可以 Undo。紀錄種類可以是 drink、water、pause、home、extend；來源可以是 tap、batch、widget、watch。畫面上只會產生 tap 和 batch。widget 和 watch 只留在資料模型，介面留到第 7 項。
+4. **SessionWatch。** 頁面上的規則只看預計到家時間、時段狀態和提醒政策。喝水提醒最多每 45 分鐘一次，到家前 10 分鐘問一次「heading home?」，任何提醒至少間隔 30 分鐘。可以 Dismiss for tonight。略過不等於失敗。飲酒中沒有呼叫聊天模型。
+5. **Focus Check。** 反應點擊、配對、邏輯圖形，大約 30 秒，沒有分數，也沒有及格或不及格。文案寫明它只是暫停，不是酒測或駕駛安全測試。玩的時候 I'm home 仍然按得了。結果不會送到守護者，也沒有後端路由可收這個結果。
+6. **服藥警示。** 藥物與酒精的提醒和可以怎麼拒絕喝酒，只出現在規劃頁。勾選「我看過這些提醒」之後，`meds_warning_ack` 才會是 true。Tonight 頁不會再要求這段內容。
+
+## 怎麼跑
+
+在專案資料夾：
+
+```
+npm install
+npm test
+npm run dev
+```
+
+`npm test` 會跑 `tests/part0` 到 `tests/part6`，共 27 個單元測試。測試直接呼叫畫面上用的同一套時段、警報、紀錄、提醒、Focus Check 和服藥確認函式，也會真的啟動那個薄後端，用第二個 HTTP 客戶端讀 magic link。
+
+## 這次沒有做
+
+第 7 項仍未做：Flutter、React Native、手機上的 SQLite、FCM／APNs、鎖定畫面、桌面小工具、手錶。也沒有每杯拍照、血液酒精濃度判斷、強制每一杯都要記、全天候追蹤、公開排行榜，或飲酒中的聊天機器人。規劃是否能在 60 秒內完成、解鎖後一鍵是否在 2 秒內，這次沒有用碼錶量。

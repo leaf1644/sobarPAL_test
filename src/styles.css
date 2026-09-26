@@ -1,0 +1,213 @@
+:root {
+  color-scheme: dark;
+  --bg: #12211c;
+  --bg-2: #1b3128;
+  --ink: #f4f1e8;
+  --muted: #c5d2cb;
+  --line: #345246;
+  --amber: #e7a45a;
+  --amber-ink: #2a1c0c;
+  --foam: #d7efe4;
+  --card: #20382f;
+  font-family: "Segoe UI", "PingFang TC", "Noto Sans TC", sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+html, body, #root { min-height: 100%; }
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background:
+    radial-gradient(1200px 500px at 10% -10%, #2c4a3d 0%, transparent 55%),
+    var(--bg);
+  color: var(--ink);
+}
+
+.app {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  padding: 28px 22px 48px;
+  max-width: 880px;
+  margin: 0 auto;
+}
+
+.top { margin-bottom: 22px; }
+
+.brand {
+  margin: 0;
+  font-family: Palatino, "Palatino Linotype", "Iowan Old Style", Georgia, serif;
+  font-size: 2.4rem;
+  letter-spacing: -0.03em;
+}
+
+.tagline, .legend, .quiet, .eyebrow { color: var(--muted); }
+
+.tagline { margin: 4px 0 16px; }
+
+.modes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.modes a {
+  color: var(--ink);
+  text-decoration: none;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 12px 16px;
+  min-height: 48px;
+  display: inline-flex;
+  align-items: center;
+  background: #173028;
+}
+
+.modes a:hover, .modes a:focus-visible { border-color: var(--amber); }
+
+.legend { margin: 14px 0 0; }
+
+main { flex: 1; }
+
+.card, .banner, .ping {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 22px;
+  padding: 22px;
+}
+
+h2, h3 {
+  font-family: Palatino, "Palatino Linotype", Georgia, serif;
+  font-weight: 500;
+  margin: 0 0 8px;
+}
+
+h2 { font-size: 2rem; }
+
+.lede { font-size: 1.05rem; line-height: 1.5; }
+
+.stack, .meds, .game, .shape-row, .night-actions, .log-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+label { display: flex; flex-direction: column; gap: 6px; font-size: 0.95rem; }
+
+input, select {
+  min-height: 48px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: #13241e;
+  color: var(--ink);
+  padding: 10px 12px;
+  font: inherit;
+}
+
+.check {
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+  min-height: 48px;
+}
+
+.check input { min-height: 0; width: 20px; height: 20px; }
+
+.hit {
+  min-height: 48px;
+  min-width: 48px;
+  border: 0;
+  border-radius: 14px;
+  padding: 12px 16px;
+  font: inherit;
+  font-size: 1.05rem;
+  background: var(--amber);
+  color: var(--amber-ink);
+  cursor: pointer;
+}
+
+.hit.secondary, .hit.water {
+  background: transparent;
+  color: var(--foam);
+  border: 1px solid var(--line);
+}
+
+.hit.home { background: var(--foam); color: #163028; }
+
+.hit:disabled { opacity: 0.55; cursor: default; }
+
+.hit:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible {
+  outline: 3px solid var(--amber);
+  outline-offset: 2px;
+}
+
+.night-actions {
+  flex-direction: row;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+
+.primary { align-self: flex-start; }
+
+.banner {
+  background: #3a3224;
+  border-color: #8a6a3b;
+  margin: 12px 0;
+}
+
+.banner.sticky {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+.error { color: #ffc7b0; }
+
+.quiet { font-size: 0.92rem; }
+
+.log-list { list-style: none; padding: 0; margin: 12px 0; }
+
+.log-list li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  min-height: 48px;
+}
+
+.hit.tiny { min-height: 48px; }
+
+.shape-row { flex-direction: row; flex-wrap: wrap; align-items: center; }
+
+.shape {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 72px;
+  min-height: 48px;
+  padding: 8px;
+  border-radius: 12px;
+  background: #13241e;
+}
+
+.shape.circle { border-radius: 999px; }
+.shape.triangle { clip-path: polygon(50% 0, 100% 100%, 0 100%); border-radius: 0; }
+
+.mystery { font-size: 2rem; padding: 0 8px; }
+
+.target { min-width: 140px; min-height: 140px; border-radius: 999px; }
+
+.ping { margin: 12px 0; }
+
+.meds ul { margin: 0; padding-left: 1.1rem; line-height: 1.45; }
+
+.game-picks { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
+
+@media (max-width: 640px) {
+  .app { padding: 18px 14px 32px; }
+  .brand { font-size: 2rem; }
+  .night-actions { flex-direction: column; }
+  .night-actions .hit { width: 100%; }
+}
