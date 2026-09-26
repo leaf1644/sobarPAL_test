@@ -25,21 +25,25 @@ export function evaluateNudges(input: {
 }): NudgeKind | null {
   if (input.status !== 'active') return null
   if (input.policy.dismissed_for_tonight) return null
-  if (input.now >= input.check_in_at) return null
 
   const gapOk =
     input.policy.last_nudge_at == null || input.now - input.policy.last_nudge_at >= NUDGE_MIN_GAP_MS
-  const headingWindow =
-    input.now >= input.check_in_at - HEADING_HOME_BEFORE_MS && input.now < input.check_in_at
+  const headingStart = input.check_in_at - HEADING_HOME_BEFORE_MS
+  // Ask once from T−10 onward, including a later sample that jumped over that
+  // 10-minute window. A missed session is no longer active, so this stops at grace.
+  if (!input.policy.heading_home_sent && input.now >= headingStart && gapOk) return 'heading_home'
 
-  if (headingWindow && !input.policy.heading_home_sent && gapOk) return 'heading_home'
+  // Leave the 30 minutes before T−10 empty so the heading-home ask still fits.
+  const holdForHeading =
+    !input.policy.heading_home_sent && input.now > headingStart - NUDGE_MIN_GAP_MS && input.now < headingStart
+  if (holdForHeading) return null
+  if (input.now >= input.check_in_at) return null
 
   const waterGapOk =
     input.policy.last_water_nudge_at == null ||
     input.now - input.policy.last_water_nudge_at >= WATER_NUDGE_GAP_MS
 
   if (!waterGapOk || !gapOk) return null
-  if (headingWindow && !input.policy.heading_home_sent) return null
   return 'water'
 }
 

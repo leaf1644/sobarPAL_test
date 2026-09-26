@@ -72,14 +72,15 @@ export function proposeGuardian(session: TonightSession, guardianName: string): 
 export function confirmGuardian(session: TonightSession, newToken: string): TonightSession {
   assertOpen(session)
   if (!session.pending_guardian_name) throw new DomainError('confirmation required')
+  const missed = session.status === 'missed'
   return {
     ...session,
     guardian_name: session.pending_guardian_name,
     pending_guardian_name: null,
     guardian_accepted: false,
     guardian_id: null,
-    status: 'planned',
-    needs_ok_prompt: false,
+    status: missed ? 'missed' : 'planned',
+    needs_ok_prompt: missed,
     magic_token: newToken,
   }
 }
@@ -92,8 +93,18 @@ export function acceptGuardian(session: TonightSession): TonightSession {
   if (session.status === 'home' || session.status === 'cancelled') {
     throw new DomainError('session ended')
   }
-  if (session.status === 'missed') throw new DomainError('session already missed')
-  if (session.guardian_accepted && session.status === 'active') return session
+  if (session.guardian_accepted && (session.status === 'active' || session.status === 'missed')) {
+    return session
+  }
+  if (session.status === 'missed') {
+    return {
+      ...session,
+      guardian_accepted: true,
+      guardian_id: slug(session.guardian_name),
+      status: 'missed',
+      needs_ok_prompt: true,
+    }
+  }
   return {
     ...session,
     guardian_accepted: true,

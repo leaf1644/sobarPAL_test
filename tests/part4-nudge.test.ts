@@ -75,6 +75,17 @@ describe('part 4 session watch nudges', () => {
         heading_home_sent: false,
         last_nudge_at: null,
       },
+    })).toBe('heading_home')
+    expect(evaluateNudges({
+      now: CHECK_IN,
+      check_in_at: CHECK_IN,
+      status: 'active',
+      policy: {
+        dismissed_for_tonight: false,
+        last_water_nudge_at: null,
+        heading_home_sent: true,
+        last_nudge_at: CHECK_IN,
+      },
     })).toBeNull()
     const result = evaluateNudges({
       now: T0,
@@ -91,6 +102,21 @@ describe('part 4 session watch nudges', () => {
     expect(isGuardianAlert(session, T0)).toBe(false)
   })
 
+  it('asks heading home once on a two-hour night and on 15-minute jumps', () => {
+    const twoHours = 2 * 60 * 60 * 1000
+    for (const step of [60_000, 15 * 60 * 1000]) {
+      const seen = collectNudges(twoHours, step)
+      expect(seen.filter((item) => item.kind === 'heading_home')).toHaveLength(1)
+      const waters = seen.filter((item) => item.kind === 'water')
+      for (let index = 1; index < seen.length; index += 1) {
+        expect(seen[index].at - seen[index - 1].at).toBeGreaterThanOrEqual(NUDGE_MIN_GAP_MS)
+      }
+      for (let index = 1; index < waters.length; index += 1) {
+        expect(waters[index].at - waters[index - 1].at).toBeGreaterThanOrEqual(WATER_NUDGE_GAP_MS)
+      }
+    }
+  })
+
   it('does not call a model while deciding a nudge', async () => {
     const source = await import('node:fs').then((fs) => fs.readFileSync(new URL('../src/domain/nudge.ts', import.meta.url), 'utf8'))
     expect(source).not.toContain('fetch(')
@@ -98,6 +124,25 @@ describe('part 4 session watch nudges', () => {
     expect(emptyNudgePolicy().dismissed_for_tonight).toBe(false)
   })
 })
+
+function collectNudges(horizonMs: number, stepMs: number) {
+  const store = createSessionStore({ clock: fixedClock(T0) })
+  const created = store.create(
+    sessionInput({ check_in_at: new Date(T0 + horizonMs).toISOString() }),
+    T0,
+  )
+  store.acceptByToken(created.magic_token)
+  const seen: { at: number; kind: string }[] = []
+  for (let now = T0; now <= T0 + horizonMs + 15 * 60 * 1000; now += stepMs) {
+    const snap = store.getSnapshot(created.id)
+    if (!snap) break
+    const kind = evaluateSessionNudges(snap, now)
+    if (!kind) continue
+    seen.push({ at: now, kind })
+    store.noteNudge(created.id, kind, now)
+  }
+  return seen
+}
 
 function activeAt() {
   const store = createSessionStore({ clock: fixedClock(T0) })

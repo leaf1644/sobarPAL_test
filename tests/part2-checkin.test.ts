@@ -113,6 +113,36 @@ describe('part 2 I am home and missed check-in', () => {
     expect(store.getSnapshot(session.id)?.needs_ok_prompt).toBe(true)
   })
 
+  it('keeps the missed check-in when the guardian is replaced', () => {
+    const store = createSessionStore({ clock: fixedClock(T0) })
+    const session = store.create(sessionInput(), T0)
+    store.acceptByToken(session.magic_token)
+    store.recordPing(session.id, 'Taxi rank', T0)
+    store.watchdogTick(PAST_GRACE)
+    expect(store.getSnapshot(session.id)?.needs_ok_prompt).toBe(true)
+
+    store.proposeGuardian(session.id, 'Lin')
+    const confirmed = store.confirmGuardian(session.id)
+    expect(confirmed.status).toBe('missed')
+    expect(confirmed.needs_ok_prompt).toBe(true)
+    expect(confirmed.guardian_name).toBe('Lin')
+    expect(confirmed.guardian_accepted).toBe(false)
+    expect(store.getByToken(session.magic_token)).toBeNull()
+
+    const beforeAccept = store.guardianView(confirmed.magic_token)
+    expect(beforeAccept.status).toBe('missed')
+    expect(beforeAccept.needs_check_in_followup).toBe(true)
+    expect(beforeAccept.drinker_name).toBe('Chen')
+
+    const accepted = store.acceptByToken(confirmed.magic_token)
+    expect(accepted.status).toBe('missed')
+    expect(accepted.needs_ok_prompt).toBe(true)
+    expect(accepted.guardian_accepted).toBe(true)
+    const afterAccept = store.guardianView(confirmed.magic_token)
+    expect(afterAccept.status).toBe('missed')
+    expect(afterAccept.last_ping?.label).toBe('Taxi rank')
+  })
+
   it('does not miss a session the guardian never accepted', () => {
     const store = createSessionStore({ clock: fixedClock(T0) })
     const session = store.create(sessionInput(), T0)
