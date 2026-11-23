@@ -1,3 +1,4 @@
+import { copy } from '../copy'
 import { sessionAfterFocusCheck, type FocusOutcome } from '../domain/focusCheck'
 import { FocusCheck } from './FocusCheck'
 import { useDrinkerNight } from './useDrinkerNight'
@@ -16,6 +17,8 @@ export function FocusNight({ sessionId }: { sessionId?: string }) {
   return (
     <div className="tonight">
       {night.error && <p className="error">{night.error}</p>}
+      {night.ready && !night.session && !night.error && <p className="error">{copy.errNeedPlan}</p>}
+      {night.session?.status === 'home' && <p className="banner">{copy.homeDone}</p>}
       <FocusCheck
         onLeave={leave}
         onDrink={() => night.addDrink(1)}

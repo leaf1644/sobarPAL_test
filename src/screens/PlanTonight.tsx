@@ -5,7 +5,9 @@ import { DEFAULT_GRACE_MINUTES } from '../domain/session'
 import { medsForSurface } from '../domain/meds'
 import { magicLinkFromPage } from '../route'
 import type { TonightSession } from '../domain/types'
-import { defaultCheckInIso, fromDatetimeLocalValue, toDatetimeLocalValue } from '../time'
+import { defaultCheckInIso, isNextMorning, tonightUntilIso, toTimeValue } from '../time'
+import { CopyLink } from './CopyLink'
+import { Hero } from './Hero'
 import { GuardianSwap } from './GuardianSwap'
 import { SESSION_KEY } from './useDrinkerNight'
 
@@ -15,7 +17,7 @@ export function PlanTonight() {
   const [guardianName, setGuardianName] = useState('')
   const [limit, setLimit] = useState(3)
   const [drinkType, setDrinkType] = useState('beer')
-  const [checkIn, setCheckIn] = useState(() => toDatetimeLocalValue(defaultCheckInIso(Date.now())))
+  const [checkIn, setCheckIn] = useState(() => toTimeValue(defaultCheckInIso(Date.now())))
   const [shareLocation, setShareLocation] = useState(false)
   const [medsConfirmed, setMedsConfirmed] = useState(false)
   const [session, setSession] = useState<TonightSession | null>(null)
@@ -24,18 +26,22 @@ export function PlanTonight() {
   const checksReady = shareLocation && medsConfirmed
 
   useEffect(() => {
-    if (!session) return
+    const id = session?.id
+    if (!id) return
     let stop = false
     const timer = window.setInterval(() => {
-      void httpApi.getSession(session.id).then((result) => {
-        if (!stop) setSession(result.session)
-      }).catch(() => undefined)
+      void httpApi
+        .getSession(id)
+        .then((result) => {
+          if (!stop) setSession(result.session)
+        })
+        .catch(() => undefined)
     }, 2000)
     return () => {
       stop = true
       window.clearInterval(timer)
     }
-  }, [session])
+  }, [session?.id])
 
   async function onCreate(event: FormEvent) {
     event.preventDefault()
@@ -46,12 +52,19 @@ export function PlanTonight() {
     setBusy(true)
     setError('')
     try {
+      let checkInAt = ''
+      try {
+        checkInAt = tonightUntilIso(checkIn, Date.now())
+      } catch {
+        setError(copy.errCheckIn)
+        return
+      }
       const created = await httpApi.createSession({
         drinker_name: drinkerName,
         guardian_name: guardianName,
         personal_limit_serves: limit,
         primary_drink_type: drinkType,
-        check_in_at: fromDatetimeLocalValue(checkIn),
+        check_in_at: checkInAt,
         share_location: shareLocation,
         meds_confirmed: medsConfirmed,
       })
@@ -70,56 +83,70 @@ export function PlanTonight() {
 
   return (
     <section className="card">
+      <Hero kind="plan" />
       <p className="eyebrow">{copy.planEyebrow}</p>
       <h2>{copy.planTitle}</h2>
       <p className="lede">{copy.planLede}</p>
       <p className="quiet">{graceLine(DEFAULT_GRACE_MINUTES)}</p>
       <form onSubmit={onCreate} className="stack">
-        <label>
-          {copy.yourName}
-          <input name="drinker_name" value={drinkerName} onChange={(event) => setDrinkerName(event.target.value)} required />
-        </label>
-        <label>
-          {copy.guardian}
-          <input
-            name="guardian_name"
-            value={guardianName}
-            onChange={(event) => setGuardianName(event.target.value)}
-            required
-          />
-        </label>
-        <label>
-          {copy.limit}
-          <input
-            name="personal_limit_serves"
-            type="number"
-            min={0}
-            step={1}
-            value={limit}
-            onChange={(event) => setLimit(Number(event.target.value))}
-            required
-          />
-          <span className="quiet">{copy.limitHint}</span>
-        </label>
-        <label>
-          {copy.drink}
-          <select name="primary_drink_type" value={drinkType} onChange={(event) => setDrinkType(event.target.value)}>
-            <option value="beer">{copy.beer}</option>
-            <option value="wine">{copy.wine}</option>
-            <option value="spirits">{copy.spirits}</option>
-            <option value="other">{copy.other}</option>
-          </select>
-        </label>
-        <label>
-          {copy.homeTime}
-          <input
-            name="check_in_at"
-            type="datetime-local"
-            value={checkIn}
-            onChange={(event) => setCheckIn(event.target.value)}
-            required
-          />
-        </label>
+        <div className="block">
+          <h3>{copy.sectionPeople}</h3>
+          <label>
+            {copy.yourName}
+            <input name="drinker_name" value={drinkerName} onChange={(event) => setDrinkerName(event.target.value)} required />
+          </label>
+          <label>
+            {copy.guardian}
+            <input
+              name="guardian_name"
+              value={guardianName}
+              onChange={(event) => setGuardianName(event.target.value)}
+              required
+            />
+          </label>
+        </div>
+        <div className="block">
+          <h3>{copy.sectionNight}</h3>
+          <label>
+            {copy.limit}
+            <input
+              name="personal_limit_serves"
+              type="number"
+              min={0}
+              step={1}
+              value={limit}
+              onChange={(event) => setLimit(Number(event.target.value))}
+              required
+            />
+            <span className="quiet">{copy.limitHint}</span>
+          </label>
+          <label>
+            {copy.drink}
+            <select name="primary_drink_type" value={drinkType} onChange={(event) => setDrinkType(event.target.value)}>
+              <option value="beer">{copy.beer}</option>
+              <option value="wine">{copy.wine}</option>
+              <option value="spirits">{copy.spirits}</option>
+              <option value="other">{copy.other}</option>
+            </select>
+          </label>
+          <label>
+            {copy.homeTime}
+            <input
+              name="check_in_at"
+              type="time"
+              value={checkIn}
+              onChange={(event) => setCheckIn(event.target.value)}
+              required
+            />
+            <span className="quiet">
+              {/^\d{2}:\d{2}$/.test(checkIn)
+                ? isNextMorning(checkIn, Date.now())
+                  ? copy.homeTomorrow
+                  : copy.homeTonight
+                : copy.errPastHome}
+            </span>
+          </label>
+        </div>
         <label className="check">
           <input
             name="share_location"
@@ -130,7 +157,7 @@ export function PlanTonight() {
           />
           {copy.shareLocation}
         </label>
-        <div className="meds">
+        <div className="meds block">
           <h3>{copy.medsTitle}</h3>
           <ul>
             {meds.warnings.map((line) => (
@@ -166,7 +193,7 @@ export function PlanTonight() {
             {copy.statusPrefix}：<strong data-testid="session-status">{statusLabel(session.status)}</strong>
           </p>
           <p className="quiet">{copy.linkHint}</p>
-          <input data-testid="magic-link" readOnly value={link} aria-label={copy.linkLabel} />
+          <CopyLink value={link} />
           <p>
             <a href={`#/tonight/${session.id}`}>{copy.openTonight}</a>
           </p>

@@ -30,7 +30,8 @@ const ROUTES: { method: string; re: RegExp; name: string; keys: string[] }[] = [
   { method: 'POST', re: /^\/api\/demo\/jump$/, name: 'jump', keys: [] },
 ]
 
-export function createApiHandler(store: SessionStore) {
+export function createApiHandler(store: SessionStore, options?: { demo?: boolean }) {
+  const demo = options?.demo !== false
   return async function handle(req: IncomingMessage, res: ServerResponse) {
     try {
       if (req.method === 'OPTIONS') {
@@ -41,6 +42,10 @@ export function createApiHandler(store: SessionStore) {
       const url = new URL(req.url ?? '/', `http://${req.headers.host ?? 'localhost'}`)
       const route = matchRoute(req.method ?? 'GET', url.pathname)
       if (!route) {
+        send(res, 404, { error: 'not found' })
+        return
+      }
+      if (!demo && (route.name === 'advance' || route.name === 'jump')) {
         send(res, 404, { error: 'not found' })
         return
       }
@@ -129,10 +134,14 @@ function dispatch(store: SessionStore, route: Route, body: Record<string, unknow
       store.acceptByToken(route.params.token)
       return viewBody(store, route.params.token)
     case 'advance': {
-      store.advance(num(body, 'minutes'))
+      const minutes = num(body, 'minutes')
       const id = optionalStr(body, 'session_id')
-      if (!id) return { server_now: stamp(store) }
-      return sessionBody(store, id)
+      if (id) {
+        store.advanceSession(id, minutes)
+        return sessionBody(store, id)
+      }
+      store.advance(minutes)
+      return { server_now: stamp(store) }
     }
     case 'jump': {
       const id = str(body, 'session_id')

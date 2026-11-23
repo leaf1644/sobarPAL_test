@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { copy, shapeWord } from '../copy'
+import { Hero } from './Hero'
 import {
   FOCUS_ROUND_SECONDS,
   completeFocusRound,
@@ -28,7 +29,7 @@ export function FocusCheck({
   useEffect(() => {
     const timer = window.setTimeout(() => setDone(true), FOCUS_ROUND_SECONDS * 1000)
     return () => window.clearTimeout(timer)
-  }, [])
+  }, [game])
 
   function finish(correct: boolean) {
     setDone(true)
@@ -37,6 +38,7 @@ export function FocusCheck({
 
   return (
     <section className="card focus-card" aria-label={copy.focus}>
+      <Hero kind="focus" />
       <p className="eyebrow">{copy.focusEyebrow}</p>
       <h2>{copy.focusTitle}</h2>
       <p className="disclaimer">{copy.focusDisclaimer}</p>
@@ -170,7 +172,7 @@ export function NightActions({
         {copy.drinkTwo}
       </button>
       {focusCurrent ? (
-        <button type="button" className="hit focus on" disabled>
+        <button type="button" className="hit focus" disabled>
           {copy.focus}
         </button>
       ) : (

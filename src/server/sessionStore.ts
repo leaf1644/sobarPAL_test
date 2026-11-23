@@ -1,6 +1,5 @@
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname } from 'node:path'
-import { deadlineMs } from '../domain/alert'
 import { DomainError } from '../domain/errors'
 import { isSessionExpired } from '../domain/retention'
 import {
@@ -40,6 +39,7 @@ export type SessionStore = {
   noteNudge(id: string, kind: NudgeKind, now?: number): TonightSession
   guardianView(token: string): GuardianView
   advance(minutes: number): number
+  advanceSession(id: string, minutes: number): void
   jumpPastGrace(id: string): number
   watchdogTick(now?: number): { missedIds: string[]; remindedIds: string[]; purgedIds: string[] }
 }
@@ -142,18 +142,29 @@ export function createSessionStore(options?: { persistPath?: string; clock?: Clo
       return toGuardianView(mustToken(token))
     },
     advance(minutes) {
-      if (!Number.isFinite(minutes) || minutes <= 0 || minutes > 24 * 60) {
-        throw new DomainError('minutes_invalid')
-      }
+      if (!demoMinutes(minutes)) throw new DomainError('minutes_invalid')
       clock.advance(minutes * 60_000)
       store.watchdogTick(clock.now())
       return clock.now()
     },
+    advanceSession(id, minutes) {
+      if (!demoMinutes(minutes)) throw new DomainError('minutes_invalid')
+      const session = must(id)
+      put({
+        ...session,
+        check_in_at: new Date(Date.parse(session.check_in_at) - minutes * 60_000).toISOString(),
+      })
+      store.watchdogTick(clock.now())
+    },
     jumpPastGrace(id) {
-      const target = deadlineMs(must(id)) + 1000
-      clock.set(target)
-      store.watchdogTick(target)
-      return target
+      const session = must(id)
+      const now = clock.now()
+      put({
+        ...session,
+        check_in_at: new Date(now - session.grace_minutes * 60_000 - 1000).toISOString(),
+      })
+      store.watchdogTick(now)
+      return now
     },
     watchdogTick(now = clock.now()) {
       const purgedIds: string[] = []
@@ -204,6 +215,10 @@ function load(path: string, sessions: Map<string, TonightSession>) {
 
 function clone<T>(value: T): T {
   return structuredClone(value)
+}
+
+function demoMinutes(minutes: number): boolean {
+  return Number.isFinite(minutes) && minutes > 0 && minutes <= 24 * 60
 }
 
 function newId(prefix: string): string {

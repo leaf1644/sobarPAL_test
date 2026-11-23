@@ -4,7 +4,9 @@ import { describe, expect, it } from 'vitest'
 import { copy } from '../src/copy'
 import { SESSION_STATUSES } from '../src/domain/types'
 import { DEFAULT_GRACE_MINUTES } from '../src/domain/session'
+import { CancelTonight } from '../src/screens/Tonight'
 import { GuardianSwap } from '../src/screens/GuardianSwap'
+import { tonightUntilIso } from '../src/time'
 import { startApiServer } from '../src/server/api'
 import { fixedClock } from '../src/server/clock'
 import { createSessionStore } from '../src/server/sessionStore'
@@ -25,6 +27,44 @@ describe('part 1 tonight session', () => {
     expect(session.status).toBe('planned')
     expect(SESSION_STATUSES).toEqual(['planned', 'active', 'home', 'missed', 'cancelled'])
     expect(Date.parse(session.check_in_at)).toBe(T0 + 3 * 60 * 60 * 1000)
+  })
+
+  it('reads a night-out clock time as later tonight, and a passed time as the next morning', () => {
+    const now = new Date(2026, 10, 22, 22, 0, 0, 0).getTime()
+    const early = new Date(tonightUntilIso('01:43', now))
+    expect(early.getDate()).toBe(23)
+    expect(early.getHours()).toBe(1)
+    expect(early.getMinutes()).toBe(43)
+    expect(early.getTime()).toBeGreaterThan(now)
+    const later = new Date(tonightUntilIso('23:15', now))
+    expect(later.getDate()).toBe(22)
+    expect(later.getHours()).toBe(23)
+    expect(later.getTime()).toBeGreaterThan(now)
+  })
+
+  it('asks before cancelling tonight', () => {
+    const ask = renderToStaticMarkup(
+      createElement(CancelTonight, {
+        pending: false,
+        onAsk: () => undefined,
+        onConfirm: () => undefined,
+        onBack: () => undefined,
+      }),
+    )
+    expect(ask).toContain(`>${copy.cancelTonight}<`)
+    expect(ask).not.toContain(copy.confirmCancel)
+    const confirm = renderToStaticMarkup(
+      createElement(CancelTonight, {
+        pending: true,
+        onAsk: () => undefined,
+        onConfirm: () => undefined,
+        onBack: () => undefined,
+      }),
+    )
+    expect(confirm).toContain(`>${copy.confirmCancel}<`)
+    expect(confirm).toContain(copy.cancelWarn)
+    expect(confirm).toContain(copy.cancelSwap)
+    expect(confirm).not.toContain(`>${copy.cancelTonight}<`)
   })
 
   it('uses an explicit grace and can cancel a session', () => {
