@@ -1,12 +1,47 @@
+import { useState } from 'react'
 import { groupedVisibleLogs, loggedAtLeast } from '../domain/log'
 import { copy, drinkWord, loggedLine, logWord, nudgeText, statusLabel } from '../copy'
 import { magicLinkFromPage } from '../route'
+import { CopyLink } from './CopyLink'
+import { Hero } from './Hero'
 import { NightActions } from './FocusCheck'
 import { GuardianSwap } from './GuardianSwap'
 import { useDrinkerNight } from './useDrinkerNight'
 
+export function CancelTonight({
+  pending,
+  onAsk,
+  onConfirm,
+  onBack,
+}: {
+  pending: boolean
+  onAsk: () => void
+  onConfirm: () => void
+  onBack: () => void
+}) {
+  if (!pending) {
+    return (
+      <button type="button" className="hit secondary" onClick={onAsk}>
+        {copy.cancelTonight}
+      </button>
+    )
+  }
+  return (
+    <div className="confirm">
+      <p>{copy.cancelWarn}</p>
+      <button type="button" className="hit" onClick={onConfirm}>
+        {copy.confirmCancel}
+      </button>
+      <button type="button" className="hit secondary" onClick={onBack}>
+        {copy.cancelSwap}
+      </button>
+    </div>
+  )
+}
+
 export function Tonight({ sessionId }: { sessionId?: string }) {
   const night = useDrinkerNight(sessionId)
+  const [confirmingCancel, setConfirmingCancel] = useState(false)
   const session = night.session
   const link =
     session && typeof window !== 'undefined' ? magicLinkFromPage(window.location.href, session.magic_token) : ''
@@ -19,6 +54,7 @@ export function Tonight({ sessionId }: { sessionId?: string }) {
         </p>
       )}
       <section className="card">
+        <Hero kind="tonight" />
         <p className="eyebrow">{copy.tonightEyebrow}</p>
         <h2>{copy.tonightTitle}</h2>
         {session ? (
@@ -35,6 +71,7 @@ export function Tonight({ sessionId }: { sessionId?: string }) {
             {session.personal_limit_serves} {copy.cups} {drinkWord(session.primary_drink_type)}
           </p>
         )}
+        {session?.status === 'home' && <p className="banner">{copy.homeDone}</p>}
         <p data-testid="logged-at-least">{loggedLine(loggedAtLeast(night.events))}</p>
         <p className="quiet">{copy.logHint}</p>
         {night.banner && (
@@ -73,13 +110,14 @@ export function Tonight({ sessionId }: { sessionId?: string }) {
           ))}
         </ul>
         {session && link && (
-          <label>
-            {copy.linkLabel}
-            <input readOnly value={link} aria-label={copy.linkLabel} />
-          </label>
+          <div className="block">
+            <h3>{copy.linkLabel}</h3>
+            <p className="quiet">{copy.linkHint}</p>
+            <CopyLink value={link} />
+          </div>
         )}
         {session?.status === 'active' && session.guardian_accepted && session.share_location && (
-          <div className="stack">
+          <div className="block">
             <label>
               {copy.pingLabel}
               <input value={night.ping} onChange={(event) => night.setPing(event.target.value)} placeholder={copy.pingPlaceholder} />
@@ -90,8 +128,9 @@ export function Tonight({ sessionId }: { sessionId?: string }) {
             <p className="quiet">{copy.pingHint}</p>
           </div>
         )}
-        {session && session.status !== 'home' && session.status !== 'cancelled' && (
-          <div className="stack demo-clock">
+        {session && session.status !== 'home' && session.status !== 'cancelled' && !import.meta.env.PROD && (
+          <details className="demo-clock">
+            <summary>{copy.demoClock}</summary>
             <p className="quiet">{copy.clockHint}</p>
             <button type="button" className="hit secondary" onClick={() => void night.advance(15)}>
               {copy.plusFifteen}
@@ -99,15 +138,18 @@ export function Tonight({ sessionId }: { sessionId?: string }) {
             <button type="button" className="hit secondary" onClick={() => void night.jump()}>
               {copy.pastGrace}
             </button>
-          </div>
+          </details>
         )}
         {session && session.status !== 'home' && session.status !== 'cancelled' && (
-          <>
+          <div className="block">
             <GuardianSwap session={session} onSession={night.setSession} onError={night.setError} />
-            <button type="button" className="hit secondary" onClick={() => void night.cancelTonight()}>
-              {copy.cancelTonight}
-            </button>
-          </>
+            <CancelTonight
+              pending={confirmingCancel}
+              onAsk={() => setConfirmingCancel(true)}
+              onConfirm={() => void night.cancelTonight()}
+              onBack={() => setConfirmingCancel(false)}
+            />
+          </div>
         )}
         {night.error && <p className="error">{night.error}</p>}
       </section>

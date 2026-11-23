@@ -3,7 +3,7 @@ import { join } from 'node:path'
 import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
-import { copy, statusLabel } from '../src/copy'
+import { callLabel, copy, errorText, statusLabel } from '../src/copy'
 import { GuardianCard } from '../src/screens/GuardianMode'
 import { isGuardianAlert } from '../src/domain/alert'
 import { createLogEvent, loggedAtLeast } from '../src/domain/log'
@@ -18,6 +18,28 @@ const CHECK_IN = T0 + 3 * 60 * 60 * 1000
 const PAST_GRACE = CHECK_IN + 10 * 60 * 1000 + 1000
 
 describe('part 2 I am home and missed check-in', () => {
+  it('shows the guardian that arriving home stopped location sharing', () => {
+    const store = createSessionStore({ clock: fixedClock(T0) })
+    const session = store.create(sessionInput())
+    store.acceptByToken(session.magic_token)
+    store.markHome(session.id, T0)
+    store.noteNudge(session.id, 'heading_home', T0)
+    const view = store.guardianView(session.magic_token)
+    const html = renderToStaticMarkup(
+      createElement(GuardianCard, {
+        view,
+        calling: false,
+        onCall: () => undefined,
+        onAccept: () => undefined,
+      }),
+    )
+    expect(store.getSnapshot(session.id)?.status).toBe('home')
+    expect(html).toContain(copy.guardianHome)
+    expect(html).not.toContain(copy.noPing)
+    expect(errorText('session_ended', copy.errHome)).toBe(copy.errEnded)
+    expect(errorText('session_ended', copy.errHome)).not.toContain('係，取消')
+  })
+
   it('raises a guardian alert only for an active session past grace that is not home', () => {
     const active = { status: 'active' as const, check_in_at: new Date(CHECK_IN).toISOString(), grace_minutes: 10 }
     const deadline = CHECK_IN + 10 * 60 * 1000
@@ -96,6 +118,22 @@ describe('part 2 I am home and missed check-in', () => {
     } finally {
       await server.close()
     }
+  })
+
+  it('fast-forwards one session without moving the shared clock or the other sessions', () => {
+    const store = createSessionStore({ clock: fixedClock(T0) })
+    const first = store.create(sessionInput(), T0)
+    const second = store.create(sessionInput({ drinker_name: 'Other', guardian_name: 'Sam' }), T0)
+    store.acceptByToken(first.magic_token)
+    store.acceptByToken(second.magic_token)
+    const untouched = store.getSnapshot(second.id)?.check_in_at
+    store.advanceSession(first.id, 191)
+    expect(store.now()).toBe(T0)
+    expect(store.getSnapshot(first.id)?.status).toBe('missed')
+    expect(store.getSnapshot(second.id)?.status).toBe('active')
+    expect(store.getSnapshot(second.id)?.check_in_at).toBe(untouched)
+    expect(errorText('session_not_found', copy.errOpen)).toBe(copy.errMissing)
+    expect(errorText('personal_limit_invalid', copy.errCreate)).toBe(copy.errLimit)
   })
 
   it('fires the watchdog without a drinker poll and spaces reminders by 20 minutes', () => {
@@ -213,6 +251,7 @@ describe('part 2 I am home and missed check-in', () => {
       }),
     )
     expect(before).toContain(`>${copy.accept}<`)
+    expect(before).not.toContain(callLabel(invite.drinker_name))
     expect(before).toContain(statusLabel('missed'))
     expect(before).not.toContain('人照看人')
     expect(before).not.toContain('Taxi rank')
@@ -230,6 +269,7 @@ describe('part 2 I am home and missed check-in', () => {
       }),
     )
     expect(after).not.toContain(`>${copy.accept}<`)
+    expect(after).toContain(callLabel(attached.drinker_name))
     expect(after).toContain('Taxi rank')
     expect(after).toContain(statusLabel('missed'))
   })

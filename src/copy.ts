@@ -13,6 +13,8 @@ export const copy = {
   themeToDark: '深色',
   navLabel: '畫面',
 
+  sectionPeople: '邊個',
+  sectionNight: '今晚',
   planEyebrow: '未出門',
   planTitle: '創建行程',
   planLede: '講定邊個睇住你、大約幾點返到。另一部電腦開條連結就得。飲咗幾多唔會傳過去。',
@@ -26,6 +28,9 @@ export const copy = {
   spirits: '烈酒',
   other: '其他',
   homeTime: '大約幾點返到',
+  homeTonight: '今晚去到呢個時間。',
+  homeTomorrow: '呢個鐘數今晚已經過咗，所以當成聽朝。',
+  errPastHome: '呢個時間用唔到。揀一個今晚未到嘅鐘數；凌晨就填聽朝嗰個鐘。',
   shareLocation: '對方接咗先分享你最後打低嘅一個位置，唔記成條路線。',
   medsTitle: '食緊藥？',
   refusalTitle: '唔想飲可以咁講',
@@ -34,6 +39,9 @@ export const copy = {
   statusPrefix: '而家',
   linkHint: '將條連結開喺另一部電腦。',
   linkLabel: '條連結',
+  copyLink: '複製連結',
+  copied: '複製咗',
+  copyFailed: '複製唔到。長撳條連結，然後手動複製。',
   openTonight: '去記酒器',
   swapLabel: '換人睇住',
   swapButton: '換人睇住',
@@ -47,7 +55,7 @@ export const copy = {
   connected: '已經接咗',
   limitShort: '想飲',
   cups: '杯',
-  logHint: '呢個係你記低咗嘅，唔代表飲晒咁多。想飲幾多都唔會鎖住個掣。',
+  logHint: '呢行係你撳過幾多杯，唔係你飲咗幾多。想飲幾多都唔會鎖住個掣。',
   drinkOne: '飲多一杯',
   drinkTwo: '飲多兩杯',
   water: '飲啖水',
@@ -65,9 +73,12 @@ export const copy = {
   pingButton: '話佢知我喺邊',
   pingHint: '只留呢一次，唔會變成路線。',
   clockHint: '示範時鐘。兩部電腦用同一個時間。',
+  demoClock: '示範時鐘',
   plusFifteen: '快轉十五分鐘',
   pastGrace: '快轉到過咗點',
   cancelTonight: '取消記酒器',
+  cancelWarn: '取消之後，未報到就唔會再通知對方。',
+  confirmCancel: '係，取消',
 
   focusEyebrow: '停一停',
   focusTitle: '抖一抖。',
@@ -98,19 +109,54 @@ export const copy = {
   lastPing: '最後位置',
   lastReminder: '上次提你',
 
-  errCreate: '創建唔到行程',
-  errSwap: '換唔到',
-  errConfirm: '確認唔到',
-  errLoad: '載入唔到記酒器',
-  errUndo: '撤銷唔到',
-  errHome: '報唔到返到',
-  errPing: '分享唔到位置',
-  errClock: '調唔到時間',
-  errCancel: '取消唔到',
-  errOpen: '開唔到邀請',
-  errAccept: '接唔到',
-  errNeedPlan: '先創建行程先',
-  errConfirmRequired: '請先確認更換',
+  errCreate: '創建唔到行程。檢查網絡，再撳一次。',
+  errSwap: '換唔到。再打個名，然後撳「換人睇住」。',
+  errConfirm: '確認唔到。再撳一次「係，換佢」。',
+  errLoad: '載入唔到記酒器。檢查網絡，再重新開呢版。',
+  errUndo: '撤銷唔到。再撳一次「撤銷」。',
+  errHome: '報唔到返到。檢查網絡，再撳一次「返到屋企」。',
+  errPing: '分享唔到位置。再打一次地方，然後撳「話佢知我喺邊」。',
+  errClock: '調唔到時間。再開「示範時鐘」，再撳一次快轉。',
+  errCancel: '取消唔到。再撳一次「係，取消」。',
+  errEnded: '呢個行程已經結束。唔使再撳取消或者返到屋企。',
+  errAlreadyHome: '已經記低返到屋企。位置分享停咗。',
+  homeDone: '返到咗。位置分享已經停。',
+  guardianHome: '返到咗。位置分享已經停。',
+  errOpen: '開唔到邀請。對一次條連結，再重新開。',
+  errAccept: '接唔到。檢查網絡，再撳一次「我睇住」。',
+  errNeedPlan: '未有行程。先去「創建行程」。',
+  errMissing: '搵唔到呢個行程。對一次條連結，或者重新創建。',
+  errName: '請填你個名。',
+  errGuardianName: '請填睇住你嗰個嘅名。',
+  errLimit: '上限要係 0 或者以上嘅整數。',
+  errCheckIn: '返到時間唔啱。再揀一個鐘數。',
+  errDrinkType: '請揀主要飲咩。',
+  errGrace: '寬限要係 0 至 180 分鐘嘅整數。',
+  errConfirmRequired: '請先撳「係，換佢」，再試一次。',
+  helpSummary: '說明（點一下）',
+  helpPlan: [
+    '填你個名、睇住你嗰個、想飲幾多，同主要飲咩。',
+    '「大約幾點返到」只填鐘數。如果個鐘數已經過咗，會當成聽朝。',
+    '位置同食藥兩項都要勾，先創建到。',
+    '創建之後撳「複製連結」，開喺睇住你嗰部電腦。',
+  ],
+  helpTonight: [
+    '「你撳低咗 N 杯」係你撳過幾多次，唔係飲咗幾多，亦唔會鎖住個掣。',
+    '撳一次「返到屋企」就結束。對方會見到返到咗，位置分享會停。',
+    '「取消記酒器」要再確認。未確認之前，未報到通知仍然有效。',
+    '「示範時鐘」只係課堂用。正式版冇呢一欄。',
+  ],
+  helpFocus: [
+    '呢度係停低喘口氣，唔係測醉，亦唔係話你可唔可以開車。',
+    '冇分數。結果唔會送去睇住你嗰個。',
+    '玩緊都撳到「返到屋企」，小遊戲唔會鎖住返到。',
+  ],
+  helpGuardian: [
+    '你睇到狀態，同對方自己打低嘅最後一個位置。你睇唔到飲咗幾多。',
+    '先撳「我睇住」。未撳之前冇「打俾」。',
+    '對方撳「返到屋企」之後，呢度會寫「返到咗。位置分享已經停。」',
+    '過咗約定時間再加十分鐘都未撳，先會寫未報到。',
+  ],
   needChecks: '兩項都要勾，先創建到行程。',
 
   medsWarnings: [
@@ -121,7 +167,7 @@ export const copy = {
 } as const
 
 export function loggedLine(count: number): string {
-  return `至少記低咗 ${count} 杯`
+  return `你撳低咗 ${count} 杯，冇撳嘅唔計`
 }
 
 export function nudgeText(kind: 'water' | 'heading_home'): string {
@@ -136,9 +182,23 @@ export function errorText(code: string, fallback: string): string {
     case 'ping_label_required':
       return copy.errPing
     case 'already_home':
-      return copy.errHome
+      return copy.errAlreadyHome
     case 'session_ended':
-      return copy.errCancel
+      return copy.errEnded
+    case 'session_not_found':
+      return copy.errMissing
+    case 'drinker_name_required':
+      return copy.errName
+    case 'guardian_name_required':
+      return copy.errGuardianName
+    case 'personal_limit_invalid':
+      return copy.errLimit
+    case 'check_in_at_invalid':
+      return copy.errCheckIn
+    case 'primary_drink_type_required':
+      return copy.errDrinkType
+    case 'grace_minutes_invalid':
+      return copy.errGrace
     case 'minutes_invalid':
       return copy.errClock
     default:

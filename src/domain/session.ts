@@ -183,6 +183,7 @@ export function dismissNudges(session: TonightSession): TonightSession {
 }
 
 export function noteNudge(session: TonightSession, kind: NudgeKind, nowMs: number): TonightSession {
+  if (session.status === 'home' || session.status === 'cancelled') return session
   const iso = new Date(nowMs).toISOString()
   return {
     ...session,

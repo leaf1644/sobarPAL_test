@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react'
-import { httpApi } from '../client/api'
+import { httpApi, messageFrom } from '../client/api'
 import { callLabel, callingLine, copy, lookingAfter, missedLine, statusLabel } from '../copy'
 import { showGuardianAccept } from '../domain/session'
+import { Hero } from './Hero'
+import { formatLocal } from '../time'
 import type { GuardianView } from '../domain/types'
 
 export function GuardianMode({ token }: { token?: string }) {
@@ -10,6 +12,9 @@ export function GuardianMode({ token }: { token?: string }) {
   const [error, setError] = useState('')
 
   useEffect(() => {
+    setCalling(false)
+    setView(null)
+    setError('')
     if (!token) return
     let stop = false
     async function load() {
@@ -17,7 +22,7 @@ export function GuardianMode({ token }: { token?: string }) {
         const result = await httpApi.guardianView(token!)
         if (!stop) setView(result.view)
       } catch (cause) {
-        if (!stop) setError(cause instanceof Error ? cause.message : copy.errOpen)
+        if (!stop) setError(messageFrom(cause, copy.errOpen))
       }
     }
     void load()
@@ -35,13 +40,14 @@ export function GuardianMode({ token }: { token?: string }) {
       const result = await httpApi.acceptGuardian(token)
       setView(result.view)
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : copy.errAccept)
+      setError(messageFrom(cause, copy.errAccept))
     }
   }
 
   if (!token) {
     return (
       <section className="card">
+        <Hero kind="guardian" />
         <p className="eyebrow">{copy.guardianEyebrow}</p>
         <h2>{copy.guardianTitle}</h2>
         <p>{copy.guardianEmpty}</p>
@@ -51,11 +57,19 @@ export function GuardianMode({ token }: { token?: string }) {
 
   return (
     <section className="card">
+      <Hero kind="guardian" />
       <p className="eyebrow">{copy.guardianEyebrow}</p>
       <h2>{view ? lookingAfter(view.drinker_name) : copy.guardianTitle}</h2>
       {!view && !error && <p>{copy.loading}</p>}
       {error && <p className="error">{error}</p>}
-      {view && <GuardianCard view={view} calling={calling} onCall={() => setCalling(true)} onAccept={() => void accept()} />}
+      {view && (
+        <GuardianCard
+          view={view}
+          calling={calling}
+          onCall={() => setCalling((current) => !current)}
+          onAccept={() => void accept()}
+        />
+      )}
     </section>
   )
 }
@@ -76,23 +90,28 @@ export function GuardianCard({
       <p>
         {copy.statusPrefix}：<strong data-testid="session-status">{statusLabel(view.status)}</strong>
       </p>
-      <p data-testid="check-in-status">{statusLabel(view.status)}</p>
       {view.needs_check_in_followup && (
         <p className="banner">{missedLine(view.drinker_name)}</p>
       )}
-      {view.last_ping ? (
+      {view.status === 'home' ? (
+        <p className="banner" data-testid="guardian-home">
+          {copy.guardianHome}
+        </p>
+      ) : view.last_ping ? (
         <div className="ping" data-testid="last-ping">
           <p>{copy.lastPing}</p>
           <p>{view.last_ping.label}</p>
-          <p className="quiet">{view.last_ping.at}</p>
+          <p className="quiet">{formatLocal(view.last_ping.at)}</p>
         </div>
       ) : (
         <p className="quiet">{copy.noPing}</p>
       )}
-      <button type="button" className="hit call" data-testid="guardian-call" onClick={onCall}>
-        {callLabel(view.drinker_name)}
-      </button>
-      {calling && <p>{callingLine(view.drinker_name)}</p>}
+      {view.guardian_accepted && (
+        <button type="button" className="hit call" data-testid="guardian-call" onClick={onCall}>
+          {callLabel(view.drinker_name)}
+        </button>
+      )}
+      {view.guardian_accepted && calling && <p>{callingLine(view.drinker_name)}</p>}
       {showGuardianAccept(view) && (
         <button type="button" className="hit primary" onClick={onAccept}>
           {copy.accept}
@@ -100,7 +119,7 @@ export function GuardianCard({
       )}
       {view.last_guardian_reminder_at && view.needs_check_in_followup && (
         <p className="quiet">
-          {copy.lastReminder} {view.last_guardian_reminder_at}
+          {copy.lastReminder} {formatLocal(view.last_guardian_reminder_at)}
         </p>
       )}
     </>

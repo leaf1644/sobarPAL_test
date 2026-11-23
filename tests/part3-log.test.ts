@@ -114,5 +114,7 @@ describe('part 3 sparse drink log', () => {
       }),
     ]
     expect(loggedLine(loggedAtLeast(sample))).toBe(loggedLine(2))
+    expect(loggedLine(2)).toContain('冇撳')
+    expect(loggedLine(2)).not.toContain('至少記低咗')
   })
 })

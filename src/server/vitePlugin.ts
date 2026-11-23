@@ -5,9 +5,9 @@ import { createApiHandler } from './api'
 import { createSessionStore } from './sessionStore'
 
 export function soberpalApiPlugin(): Plugin {
-  const attach = (middlewares: Connect.Server) => {
+  const attach = (middlewares: Connect.Server, demo: boolean) => {
     const store = createSessionStore({ persistPath: resolve(process.cwd(), 'data/sessions.json') })
-    const handle = createApiHandler(store)
+    const handle = createApiHandler(store, { demo })
     const holder = globalThis as { __soberpalWatchdog?: ReturnType<typeof setInterval> }
     if (holder.__soberpalWatchdog) clearInterval(holder.__soberpalWatchdog)
     const timer = setInterval(() => store.watchdogTick(), 5000)
@@ -26,10 +26,10 @@ export function soberpalApiPlugin(): Plugin {
   return {
     name: 'soberpal-api',
     configureServer(server) {
-      attach(server.middlewares)
+      attach(server.middlewares, true)
     },
     configurePreviewServer(server) {
-      attach(server.middlewares)
+      attach(server.middlewares, false)
     },
   }
 }

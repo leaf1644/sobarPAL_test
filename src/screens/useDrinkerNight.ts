@@ -16,12 +16,16 @@ export function useDrinkerNight(sessionId?: string) {
   const [banner, setBanner] = useState<NudgeKind | null>(null)
   const [error, setError] = useState('')
   const [ping, setPing] = useState('')
+  const [ready, setReady] = useState(false)
   const logRef = useRef<ReturnType<typeof createSparseLog> | null>(null)
   const notedKey = useRef<string | null>(null)
 
   useEffect(() => {
     const id = sessionId || readSavedId()
-    if (!id) return
+    if (!id) {
+      setReady(true)
+      return
+    }
     const log = createSparseLog(browserOrMemory(), id)
     logRef.current = log
     setEvents(log.list())
@@ -31,8 +35,7 @@ export function useDrinkerNight(sessionId?: string) {
       try {
         const result = await httpApi.getSession(id!)
         if (stop) return
-        setSession(result.session)
-        setServerNow(result.server_now)
+        takeSnapshot(result)
         setError('')
       } catch (cause) {
         if (cause instanceof ApiError && shouldClearLocalLog(cause.status)) {
@@ -40,6 +43,8 @@ export function useDrinkerNight(sessionId?: string) {
           setEvents([])
         }
         if (!stop) setError(messageFrom(cause, copy.errLoad))
+      } finally {
+        if (!stop) setReady(true)
       }
     }
     void load()
@@ -59,8 +64,10 @@ export function useDrinkerNight(sessionId?: string) {
     notedKey.current = key
     setBanner(nudge)
     void httpApi.noteNudge(session.id, nudge).then((result) => {
-      setSession(result.session)
-      setServerNow(result.server_now)
+      takeSnapshot(result)
+    }).catch((cause: unknown) => {
+      notedKey.current = null
+      setError(messageFrom(cause, copy.errLoad))
     })
   }, [session, serverNow])
 
@@ -98,10 +105,10 @@ export function useDrinkerNight(sessionId?: string) {
       setError(copy.errNeedPlan)
       return
     }
+    setError('')
     try {
       const result = await httpApi.markHome(session.id)
-      setSession(result.session)
-      setServerNow(result.server_now)
+      takeSnapshot(result)
       setBanner(null)
       if (logRef.current) {
         setEvents(
@@ -122,8 +129,7 @@ export function useDrinkerNight(sessionId?: string) {
     if (!session) return
     try {
       const result = await httpApi.ping(session.id, ping)
-      setSession(result.session)
-      setServerNow(result.server_now)
+      takeSnapshot(result)
       setPing('')
     } catch (cause) {
       setError(messageFrom(cause, copy.errPing))
@@ -134,8 +140,7 @@ export function useDrinkerNight(sessionId?: string) {
     if (!session) return
     try {
       const result = await httpApi.advance(minutes, session.id)
-      setSession(result.session)
-      setServerNow(result.server_now)
+      takeSnapshot(result)
     } catch (cause) {
       setError(messageFrom(cause, copy.errClock))
     }
@@ -145,8 +150,7 @@ export function useDrinkerNight(sessionId?: string) {
     if (!session) return
     try {
       const result = await httpApi.jumpPastGrace(session.id)
-      setSession(result.session)
-      setServerNow(result.server_now)
+      takeSnapshot(result)
     } catch (cause) {
       setError(messageFrom(cause, copy.errClock))
     }
@@ -154,16 +158,20 @@ export function useDrinkerNight(sessionId?: string) {
 
   async function dismiss() {
     if (!session) return
-    const result = await httpApi.dismissNudges(session.id)
-    setSession(result.session)
-    setBanner(null)
+    try {
+      const result = await httpApi.dismissNudges(session.id)
+      takeSnapshot(result)
+      setBanner(null)
+    } catch (cause) {
+      setError(messageFrom(cause, copy.errLoad))
+    }
   }
 
   async function cancelTonight() {
     if (!session) return
     try {
       const result = await httpApi.cancel(session.id)
-      setSession(result.session)
+      takeSnapshot(result)
     } catch (cause) {
       setError(messageFrom(cause, copy.errCancel))
     }
@@ -182,9 +190,24 @@ export function useDrinkerNight(sessionId?: string) {
     window.location.hash = `#/focus/${session.id}`
   }
 
+  function takeSession(next: TonightSession) {
+    setSession((current) => {
+      const closed = current?.status === 'home' || current?.status === 'cancelled'
+      const nextOpen = next.status !== 'home' && next.status !== 'cancelled'
+      if (closed && nextOpen) return current
+      return next
+    })
+  }
+
+  function takeSnapshot(result: { session: TonightSession; server_now: string }) {
+    takeSession(result.session)
+    setServerNow(result.server_now)
+  }
+
   return {
     session,
-    setSession,
+    ready,
+    setSession: takeSession,
     events,
     banner,
     error,
